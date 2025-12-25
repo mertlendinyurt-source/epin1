@@ -150,21 +150,32 @@ export default function App() {
         </div>
       </header>
 
-      {/* Hero - Dark atmospheric gaming background */}
-      <div className="relative h-[320px] flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0F1319' }}>
+      {/* Hero - Cinematic with layered backgrounds */}
+      <div className="relative h-[280px] flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0a0d12' }}>
+        {/* Background Image Layer */}
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-40"
+          className="absolute inset-0 bg-cover bg-center opacity-30"
           style={{
             backgroundImage: 'url(https://images.pexels.com/photos/5380620/pexels-photo-5380620.jpeg?auto=compress&cs=tinysrgb&w=1920)'
           }}
         />
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(26,30,36,0.4), rgba(26,30,36,0.9))' }} />
         
-        <div className="relative z-10 text-center px-4">
-          <h1 className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight leading-tight">
+        {/* Vignette + Diagonal Gradient Overlay */}
+        <div 
+          className="absolute inset-0" 
+          style={{ 
+            background: `
+              radial-gradient(ellipse at center, transparent 0%, rgba(10,13,18,0.6) 70%),
+              linear-gradient(135deg, rgba(26,30,36,0.3) 0%, rgba(26,30,36,0.8) 100%)
+            `
+          }} 
+        />
+        
+        <div className="relative z-10 text-center px-4 max-w-2xl">
+          <h1 className="text-4xl md:text-[56px] font-black text-white mb-2.5 leading-[1.1] tracking-[-0.02em]">
             PUBG MOBILE UC
           </h1>
-          <p className="text-base text-white/60 font-medium">Anında teslimat • Güvenli ödeme</p>
+          <p className="text-[15px] text-white/65 font-medium">Anında teslimat • Güvenli ödeme</p>
         </div>
       </div>
 
