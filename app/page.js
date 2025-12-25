@@ -243,11 +243,11 @@ export default function App() {
 
       {/* Checkout Dialog */}
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl">
+        <DialogContent className="bg-zinc-950 border border-white/10 text-white max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Siparişi Tamamla</DialogTitle>
-            <DialogDescription className="text-slate-400">
-              Oyuncu bilgilerinizi girin ve ödemeye geçin
+            <DialogTitle className="text-2xl font-bold">Siparişi Tamamla</DialogTitle>
+            <DialogDescription className="text-white/50">
+              Oyuncu bilgilerinizi girin
             </DialogDescription>
           </DialogHeader>
           
@@ -255,7 +255,7 @@ export default function App() {
             {/* Left: Player Info */}
             <div className="space-y-4">
               <div>
-                <Label htmlFor="playerId" className="text-white mb-2 block">
+                <Label htmlFor="playerId" className="text-white/70 mb-2 block text-sm">
                   Oyuncu ID
                 </Label>
                 <div className="relative">
@@ -264,7 +264,7 @@ export default function App() {
                     placeholder="Oyuncu ID'nizi girin"
                     value={playerId}
                     onChange={(e) => setPlayerId(e.target.value)}
-                    className="bg-slate-800 border-slate-700 text-white pr-10"
+                    className="bg-zinc-900 border-white/10 text-white placeholder:text-white/30 pr-10 focus:border-blue-500"
                   />
                   {playerLoading && (
                     <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />
@@ -276,18 +276,15 @@ export default function App() {
                     <X className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-500" />
                   )}
                 </div>
-                <p className="text-xs text-slate-400 mt-1">
-                  Oyuncu ID'nizi PUBG Mobile oyununuzdan bulabilirsiniz
-                </p>
               </div>
 
               {playerName && (
-                <div className="p-4 rounded-lg bg-green-900/20 border border-green-800">
-                  <div className="flex items-center gap-2 text-green-400 mb-1">
+                <div className="p-4 rounded bg-green-500/10 border border-green-500/20">
+                  <div className="flex items-center gap-2 text-green-400 mb-1 text-sm">
                     <Check className="w-4 h-4" />
                     <span className="font-semibold">Oyuncu Bulundu</span>
                   </div>
-                  <p className="text-white font-bold text-lg">{playerName}</p>
+                  <p className="text-white font-bold">{playerName}</p>
                 </div>
               )}
             </div>
@@ -295,18 +292,18 @@ export default function App() {
             {/* Right: Order Summary */}
             {selectedProduct && (
               <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-slate-800 border border-slate-700">
-                  <h3 className="font-semibold mb-3 text-white">Sipariş Özeti</h3>
+                <div className="p-4 rounded bg-zinc-900 border border-white/10">
+                  <h3 className="font-semibold mb-3 text-white text-sm">Sipariş Özeti</h3>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Ürün</span>
-                      <span className="text-white font-medium">{selectedProduct.title}</span>
+                      <span className="text-white/50">Ürün</span>
+                      <span className="text-white font-semibold">{selectedProduct.title}</span>
                     </div>
                     {selectedProduct.discountPrice < selectedProduct.price && (
                       <>
                         <div className="flex justify-between text-sm">
-                          <span className="text-slate-400">Liste Fiyatı</span>
-                          <span className="text-slate-500 line-through">{selectedProduct.price.toFixed(2)} ₺</span>
+                          <span className="text-white/50">Liste Fiyatı</span>
+                          <span className="text-white/30 line-through">{selectedProduct.price.toFixed(2)} ₺</span>
                         </div>
                         <div className="flex justify-between text-sm">
                           <span className="text-green-400">İndirim</span>
@@ -314,10 +311,10 @@ export default function App() {
                         </div>
                       </>
                     )}
-                    <div className="border-t border-slate-700 pt-2 mt-2">
-                      <div className="flex justify-between">
+                    <div className="border-t border-white/10 pt-2 mt-2">
+                      <div className="flex justify-between items-baseline">
                         <span className="font-semibold text-white">Toplam</span>
-                        <span className="font-bold text-2xl text-blue-400">
+                        <span className="font-black text-2xl text-white">
                           {selectedProduct.discountPrice.toFixed(2)} ₺
                         </span>
                       </div>
@@ -325,10 +322,10 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 text-xs text-slate-400 p-3 rounded-lg bg-blue-900/20 border border-blue-800">
-                  <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div className="flex items-start gap-2 text-xs text-white/40 p-3 rounded bg-blue-500/5 border border-blue-500/10">
+                  <Zap className="w-4 h-4 mt-0.5 flex-shrink-0" />
                   <p>
-                    UC'ler ödeme onaylandıktan sonra 5-10 dakika içinde hesabınıza yüklenecektir.
+                    UC'ler ödeme onayından sonra 5-10 dakika içinde hesabınıza yüklenecektir.
                   </p>
                 </div>
               </div>
@@ -339,14 +336,14 @@ export default function App() {
             <Button
               variant="outline"
               onClick={() => setCheckoutOpen(false)}
-              className="border-slate-700 text-white hover:bg-slate-800"
+              className="border-white/10 text-white hover:bg-white/5"
             >
               İptal
             </Button>
             <Button
               onClick={handleCheckout}
               disabled={!playerValid || orderProcessing}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold"
             >
               {orderProcessing ? (
                 <>
@@ -362,11 +359,11 @@ export default function App() {
       </Dialog>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950 mt-20">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-slate-400 text-sm">
+      <footer className="border-t border-white/5 bg-black mt-32">
+        <div className="max-w-[1400px] mx-auto px-6 py-12">
+          <div className="text-center text-white/30 text-sm">
             <p>© 2024 PUBG UC Store. Tüm hakları saklıdır.</p>
-            <p className="mt-2 text-xs text-slate-500">
+            <p className="mt-2 text-xs text-white/20">
               Bu site PUBG Mobile ile resmi bir bağlantısı yoktur.
             </p>
           </div>
