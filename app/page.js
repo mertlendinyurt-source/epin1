@@ -186,63 +186,84 @@ export default function App() {
             <Loader2 className="w-7 h-7 text-blue-500 animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {products.map((product) => (
               <div
                 key={product.id}
                 onClick={() => handleProductSelect(product)}
-                className="group relative rounded overflow-hidden cursor-pointer transition-all hover:scale-[1.02]"
-                style={{ backgroundColor: '#25282C', border: '1px solid rgba(255,255,255,0.03)' }}
+                className="group relative rounded overflow-hidden cursor-pointer transition-all duration-200"
+                style={{ 
+                  backgroundColor: '#1e2228',
+                  border: '1px solid rgba(255,255,255,0.04)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                }}
               >
-                {/* Discount Badge */}
+                {/* Discount Badge - Small & Flat */}
                 {product.discountPercent > 0 && (
-                  <div className="absolute top-1.5 right-1.5 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">
+                  <div className="absolute top-2 right-2 bg-red-600/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-sm z-10 uppercase tracking-wide">
                     -{product.discountPercent}%
                   </div>
                 )}
 
-                {/* UC Coin Image */}
-                <div className="relative h-32 overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1F2226 0%, #25282C 100%)' }}>
+                {/* UC Coin Image - Smaller, darker */}
+                <div className="relative h-28 overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #161a1f 0%, #1e2228 100%)' }}>
+                  <div className="absolute inset-0 bg-black/20" />
                   <img 
-                    src="https://images.unsplash.com/photo-1645690364326-1f80098eca66?w=200&h=200&fit=crop"
+                    src="https://images.unsplash.com/photo-1645690364326-1f80098eca66?w=180&h=180&fit=crop"
                     alt="UC"
-                    className="w-20 h-20 object-contain opacity-75 group-hover:scale-105 transition-transform"
+                    className="relative w-16 h-16 object-contain opacity-70 group-hover:scale-105 transition-transform"
                   />
                 </div>
 
-                {/* Content */}
-                <div className="p-3 space-y-1.5">
-                  {/* Label */}
-                  <div className="text-[10px] text-white/40 font-medium uppercase tracking-wide">MOBILE</div>
+                {/* Content - Tighter Spacing */}
+                <div className="p-2.5 space-y-1">
+                  {/* Label - Small & Low Contrast */}
+                  <div className="text-[9px] text-white/40 font-semibold uppercase tracking-wider">MOBILE</div>
                   
-                  {/* UC Amount */}
-                  <div className="text-xl font-bold text-white leading-none">
-                    {product.ucAmount} <span className="text-sm text-white/50 font-normal">UC</span>
+                  {/* UC Amount - DOMINANT */}
+                  <div className="text-[26px] font-black text-white/95 leading-none tracking-tight">
+                    {product.ucAmount}<span className="text-[13px] text-white/45 font-medium ml-0.5">UC</span>
                   </div>
 
-                  {/* Region */}
-                  <div className="flex items-center gap-1.5 text-[11px]">
-                    <span className="text-white/50">🇹🇷 TÜRKİYE</span>
+                  {/* Region - Subtle */}
+                  <div className="flex items-center gap-1 text-[10px] text-white/50 font-medium">
+                    <span>🇹🇷 TÜRKİYE</span>
                   </div>
                   
-                  <div className="text-[11px] text-green-500 font-medium">Bölgenizde kullanılabilir</div>
+                  <div className="text-[10px] text-green-400/80 font-medium">Bölgenizde kullanılabilir</div>
 
-                  {/* Prices */}
-                  <div className="pt-1">
+                  {/* Prices - Compact */}
+                  <div className="pt-0.5">
                     {product.discountPrice < product.price && (
-                      <div className="text-xs text-white/30 line-through font-medium">
-                        ₺ {product.price.toFixed(2)}
+                      <div className="text-[11px] text-white/25 line-through font-normal">
+                        ₺{product.price.toFixed(2)}
                       </div>
                     )}
-                    <div className="text-2xl font-bold text-white leading-none mt-0.5">
-                      ₺ {product.discountPrice.toFixed(2)}
+                    <div className="text-[22px] font-bold text-white/95 leading-none mt-0.5">
+                      ₺{product.discountPrice.toFixed(2)}
                     </div>
                     {product.discountPercent > 0 && (
-                      <div className="text-[11px] text-green-500 font-medium mt-0.5">
-                        {product.discountPercent}% indirim
+                      <div className="text-[10px] text-green-400/75 font-medium mt-0.5">
+                        %{product.discountPercent} indirim
                       </div>
                     )}
                   </div>
+                  
+                  {/* CTA - Embedded, not loud */}
+                  <button 
+                    className="w-full mt-2 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white font-semibold py-2 rounded-sm text-[11px] uppercase tracking-wide transition-all border border-white/5 hover:border-white/15"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleProductSelect(product)
+                    }}
+                  >
+                    Satın Al
+                  </button>
+                </div>
+
+                {/* Subtle hover effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="absolute inset-0 ring-1 ring-inset ring-white/10" />
                 </div>
               </div>
             ))}
