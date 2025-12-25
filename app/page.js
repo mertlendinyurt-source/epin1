@@ -402,11 +402,11 @@ export default function App() {
       </Dialog>
 
       {/* Footer */}
-      <footer className="mt-24 py-6" style={{ borderTop: '1px solid rgba(255,255,255,0.03)', backgroundColor: '#12161D' }}>
+      <footer className="mt-20 py-6" style={{ borderTop: '1px solid rgba(255,255,255,0.04)', backgroundColor: '#0d1015' }}>
         <div className="max-w-[1400px] mx-auto px-4">
-          <div className="text-center text-white/30 text-xs">
+          <div className="text-center text-white/30 text-xs leading-relaxed">
             <p>© 2024 PUBG UC Store. Tüm hakları saklıdır.</p>
-            <p className="mt-1.5 text-white/20 text-[11px]">
+            <p className="mt-1 text-white/20 text-[11px]">
               Bu site PUBG Mobile ile resmi bir bağlantısı yoktur.
             </p>
           </div>
