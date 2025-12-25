@@ -15,11 +15,13 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [playerIdModalOpen, setPlayerIdModalOpen] = useState(false)
   const [playerId, setPlayerId] = useState('')
   const [playerName, setPlayerName] = useState('')
   const [playerLoading, setPlayerLoading] = useState(false)
   const [playerValid, setPlayerValid] = useState(null)
   const [orderProcessing, setOrderProcessing] = useState(false)
+  const [playerIdError, setPlayerIdError] = useState('')
 
   useEffect(() => {
     fetchProducts()
