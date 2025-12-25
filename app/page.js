@@ -473,53 +473,32 @@ export default function App() {
                   )}
                 </div>
 
-                {/* Payment Methods */}
+                {/* Payment Methods - Only Credit Card */}
                 <div>
                   <Label className="text-sm md:text-base text-white/80 uppercase mb-4 block">Ödeme yöntemleri</Label>
                   
-                  <div className="space-y-4">
-                    {/* Credit Card */}
-                    <div className="relative p-4 md:p-5 rounded-lg bg-[#12161D] border border-white/10">
-                      <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
-                        <Check className="w-4 h-4 text-black" />
-                      </div>
-                      
-                      <div className="mb-3">
-                        <div className="text-base md:text-lg font-bold text-white mb-1">Kredi / Banka Kartı</div>
-                        <div className="inline-block px-2 py-0.5 rounded bg-white/10 text-[11px] text-white/70">
-                          Anında teslimat
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-7 bg-white rounded flex items-center justify-center">
-                          <span className="text-blue-600 font-bold text-xs">VISA</span>
-                        </div>
-                        <div className="w-10 h-7 bg-white rounded flex items-center justify-center">
-                          <span className="text-red-600 font-bold text-xs">MC</span>
-                        </div>
-                        <div className="w-10 h-7 bg-white rounded flex items-center justify-center">
-                          <span className="text-blue-500 font-bold text-xs">TROY</span>
-                        </div>
+                  {/* Credit Card - Only option */}
+                  <div className="relative p-4 md:p-5 rounded-lg bg-[#12161D] border border-white/10">
+                    <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white flex items-center justify-center">
+                      <Check className="w-4 h-4 text-black" />
+                    </div>
+                    
+                    <div className="mb-3">
+                      <div className="text-base md:text-lg font-bold text-white mb-1">Kredi / Banka Kartı</div>
+                      <div className="inline-block px-2 py-0.5 rounded bg-white/10 text-[11px] text-white/70">
+                        Anında teslimat
                       </div>
                     </div>
-
-                    {/* Shopier - Replacing PAYTR */}
-                    <div className="relative p-4 md:p-5 rounded-lg bg-[#12161D]/50 border border-white/10 opacity-60">
-                      <div className="mb-3">
-                        <div className="text-base md:text-lg font-bold text-white mb-1">Shopier</div>
-                        <div className="inline-block px-2 py-0.5 rounded bg-white/10 text-[11px] text-white/70">
-                          Anında teslimat
-                        </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-7 bg-white rounded flex items-center justify-center">
+                        <span className="text-blue-600 font-bold text-xs">VISA</span>
                       </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-7 bg-white rounded flex items-center justify-center">
-                          <span className="text-blue-600 font-bold text-xs">VISA</span>
-                        </div>
-                        <div className="w-10 h-7 bg-white rounded flex items-center justify-center">
-                          <span className="text-red-600 font-bold text-xs">MC</span>
-                        </div>
+                      <div className="w-10 h-7 bg-white rounded flex items-center justify-center">
+                        <span className="text-red-600 font-bold text-xs">MC</span>
+                      </div>
+                      <div className="w-10 h-7 bg-white rounded flex items-center justify-center">
+                        <span className="text-blue-500 font-bold text-xs">TROY</span>
                       </div>
                     </div>
                   </div>
