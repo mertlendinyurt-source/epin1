@@ -236,6 +236,7 @@ export default function App() {
               </div>
             ))}
           </div>
+        )}
       </main>
 
       {/* Checkout Dialog - Plyr style */}
