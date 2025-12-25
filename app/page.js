@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { ShoppingCart, User, Check, X, Loader2, Info, Zap } from 'lucide-react'
+import { User, Check, X, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -124,24 +124,24 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen" style={{ backgroundColor: '#1A1E24' }}>
       <Toaster position="top-center" richColors />
       
-      {/* Header - Minimal like Plyr */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-sm border-b border-white/5">
-        <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded bg-blue-500 flex items-center justify-center font-black text-xs text-white">
+      {/* Header - Plyr style */}
+      <header className="sticky top-0 z-50" style={{ backgroundColor: '#12161D', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="max-w-[1400px] mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center font-black text-[10px] text-white">
               UC
             </div>
-            <span className="text-white font-semibold text-lg">PUBG UC</span>
+            <span className="text-white font-semibold text-base">PUBG UC</span>
           </div>
             
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="text-white/60 hover:text-white hover:bg-white/5 w-9 h-9"
+              className="text-white/60 hover:text-white hover:bg-white/10 w-8 h-8"
               onClick={() => window.location.href = '/admin/login'}
             >
               <User className="w-4 h-4" />
@@ -150,91 +150,88 @@ export default function App() {
         </div>
       </header>
 
-      {/* Hero - PUBG Gaming Background */}
-      <div className="relative h-[60vh] flex items-center justify-center overflow-hidden pt-16">
+      {/* Hero - Dark atmospheric gaming background */}
+      <div className="relative h-[320px] flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#0F1319' }}>
         <div 
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0 bg-cover bg-center opacity-40"
           style={{
-            backgroundImage: 'url(https://images.pexels.com/photos/5380620/pexels-photo-5380620.jpeg?auto=compress&cs=tinysrgb&w=1920)',
-            backgroundColor: '#0a0a0a'
+            backgroundImage: 'url(https://images.pexels.com/photos/5380620/pexels-photo-5380620.jpeg?auto=compress&cs=tinysrgb&w=1920)'
           }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/70 to-black" />
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(26,30,36,0.4), rgba(26,30,36,0.9))' }} />
         
-        <div className="relative z-10 text-center px-4 max-w-4xl">
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-4 tracking-tight">
+        <div className="relative z-10 text-center px-4">
+          <h1 className="text-4xl md:text-5xl font-black text-white mb-2 tracking-tight leading-tight">
             PUBG MOBILE UC
           </h1>
-          <p className="text-lg md:text-xl text-white/70 font-medium">Anında teslimat • Güvenli ödeme</p>
+          <p className="text-base text-white/60 font-medium">Anında teslimat • Güvenli ödeme</p>
         </div>
       </div>
 
-      {/* Products Section - Plyr Style Grid */}
-      <main className="max-w-[1400px] mx-auto px-6 py-16">
+      {/* Products Section - Plyr exact layout */}
+      <main className="max-w-[1400px] mx-auto px-4 py-8">
         {loading ? (
-          <div className="flex items-center justify-center py-32">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-7 h-7 text-blue-500 animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
             {products.map((product) => (
               <div
                 key={product.id}
                 onClick={() => handleProductSelect(product)}
-                className="group relative bg-zinc-950 rounded-lg border border-white/5 hover:border-blue-500/50 transition-all cursor-pointer overflow-hidden"
+                className="group relative rounded overflow-hidden cursor-pointer transition-all hover:scale-[1.02]"
+                style={{ backgroundColor: '#25282C', border: '1px solid rgba(255,255,255,0.03)' }}
               >
                 {/* Discount Badge */}
                 {product.discountPercent > 0 && (
-                  <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded z-10">
+                  <div className="absolute top-1.5 right-1.5 bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded z-10">
                     -{product.discountPercent}%
                   </div>
                 )}
 
                 {/* UC Coin Image */}
-                <div className="relative h-40 overflow-hidden bg-gradient-to-br from-zinc-900 to-zinc-950 flex items-center justify-center">
+                <div className="relative h-32 overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #1F2226 0%, #25282C 100%)' }}>
                   <img 
-                    src="https://images.unsplash.com/photo-1645690364326-1f80098eca66?w=300&h=300&fit=crop"
-                    alt="UC Coin"
-                    className="w-24 h-24 object-contain opacity-80 group-hover:scale-110 transition-transform duration-300"
+                    src="https://images.unsplash.com/photo-1645690364326-1f80098eca66?w=200&h=200&fit=crop"
+                    alt="UC"
+                    className="w-20 h-20 object-contain opacity-75 group-hover:scale-105 transition-transform"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent" />
                 </div>
 
                 {/* Content */}
-                <div className="p-4 space-y-2">
-                  {/* UC Amount - Most Prominent */}
-                  <div className="text-3xl font-black text-white tracking-tight">
-                    {product.ucAmount}
-                    <span className="text-lg text-white/40 ml-1 font-normal">UC</span>
+                <div className="p-3 space-y-1.5">
+                  {/* Label */}
+                  <div className="text-[10px] text-white/40 font-medium uppercase tracking-wide">MOBILE</div>
+                  
+                  {/* UC Amount */}
+                  <div className="text-xl font-bold text-white leading-none">
+                    {product.ucAmount} <span className="text-sm text-white/50 font-normal">UC</span>
                   </div>
 
-                  {/* Price */}
-                  <div className="flex items-baseline gap-2">
+                  {/* Region */}
+                  <div className="flex items-center gap-1.5 text-[11px]">
+                    <span className="text-white/50">🇹🇷 TÜRKİYE</span>
+                  </div>
+                  
+                  <div className="text-[11px] text-green-500 font-medium">Bölgenizde kullanılabilir</div>
+
+                  {/* Prices */}
+                  <div className="pt-1">
                     {product.discountPrice < product.price && (
-                      <span className="text-sm text-white/30 line-through font-medium">
-                        ₺{product.price.toFixed(0)}
-                      </span>
+                      <div className="text-xs text-white/30 line-through font-medium">
+                        ₺ {product.price.toFixed(2)}
+                      </div>
                     )}
-                    <span className="text-xl font-bold text-white">
-                      ₺{product.discountPrice.toFixed(2)}
-                    </span>
+                    <div className="text-2xl font-bold text-white leading-none mt-0.5">
+                      ₺ {product.discountPrice.toFixed(2)}
+                    </div>
+                    {product.discountPercent > 0 && (
+                      <div className="text-[11px] text-green-500 font-medium mt-0.5">
+                        {product.discountPercent}% indirim
+                      </div>
+                    )}
                   </div>
-
-                  {/* Buy Button */}
-                  <button 
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded text-sm transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleProductSelect(product)
-                    }}
-                  >
-                    Satın Al
-                  </button>
-                </div>
-
-                {/* Hover Glow Effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  <div className="absolute inset-0 bg-blue-500/5" />
                 </div>
               </div>
             ))}
