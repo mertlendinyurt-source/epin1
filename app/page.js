@@ -124,24 +124,24 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#1A1E24' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#15181d' }}>
       <Toaster position="top-center" richColors />
       
-      {/* Header - Plyr style */}
-      <header className="sticky top-0 z-50" style={{ backgroundColor: '#12161D', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      {/* Header - Dark layered */}
+      <header className="sticky top-0 z-50" style={{ backgroundColor: '#0d1015', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="max-w-[1400px] mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded bg-blue-600 flex items-center justify-center font-black text-[10px] text-white">
               UC
             </div>
-            <span className="text-white font-semibold text-base">PUBG UC</span>
+            <span className="text-white/90 font-semibold text-base tracking-tight">PUBG UC</span>
           </div>
             
           <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="text-white/60 hover:text-white hover:bg-white/10 w-8 h-8"
+              className="text-white/55 hover:text-white/90 hover:bg-white/8 w-8 h-8"
               onClick={() => window.location.href = '/admin/login'}
             >
               <User className="w-4 h-4" />
