@@ -363,7 +363,7 @@ export default function App() {
 
       {/* Checkout Dialog - With PUBG background */}
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
-        <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 gap-0 overflow-hidden border-0" style={{ backgroundColor: 'transparent' }}>
+        <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] p-0 gap-0 overflow-hidden border-0" style={{ backgroundColor: 'transparent' }}>
           {/* PUBG Background - Blurred */}
           <div 
             className="absolute inset-0 bg-cover bg-center blur-sm -z-10"
@@ -373,13 +373,15 @@ export default function App() {
           />
           <div className="absolute inset-0 bg-black/60 -z-10" />
           
-          <div className="relative bg-[#1e2229]/95 backdrop-blur-md">
-            {/* Title */}
-            <div className="px-5 md:px-8 py-5 md:py-6 border-b border-white/5">
+          <div className="relative bg-[#1e2229]/95 backdrop-blur-md flex flex-col max-h-[90vh]">
+            {/* Title - Fixed */}
+            <div className="px-5 md:px-8 py-4 md:py-6 border-b border-white/5 flex-shrink-0">
               <h2 className="text-lg md:text-xl font-bold text-white uppercase tracking-wide">ÖDEME TÜRÜNÜ SEÇİN</h2>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2">
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto flex-1">
+              <div className="grid grid-cols-1 md:grid-cols-2">
               {/* Left Column: Player ID & Payment Methods */}
               <div className="p-5 md:p-8 space-y-6 md:space-y-8 border-b md:border-b-0 md:border-r border-white/5">
                 {/* Error Alert - Only show if trying to pay without player ID */}
