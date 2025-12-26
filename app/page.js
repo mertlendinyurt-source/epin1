@@ -493,15 +493,17 @@ export default function App() {
       </Dialog>
 
       <Dialog open={playerIdModalOpen} onOpenChange={setPlayerIdModalOpen}>
-        <DialogContent className="max-w-[90vw] md:max-w-md p-0 gap-0 overflow-hidden border-0" style={{ backgroundColor: 'transparent' }}>
+        <DialogContent 
+          className="max-w-[90vw] md:max-w-md p-0 gap-0 overflow-hidden border-0 bg-transparent" 
+          style={{ backgroundColor: 'transparent !important' }}
+        >
           <div 
-            className="absolute inset-0 bg-cover bg-center blur-sm"
+            className="absolute inset-0 bg-cover bg-center blur-md -z-10"
             style={{
-              backgroundImage: 'url(https://customer-assets.emergentagent.com/job_8b265523-4875-46c8-ab48-988eea2d3777/artifacts/prqvfd8b_wp5153882-pubg-fighting-wallpapers.jpg)',
-              zIndex: -1
+              backgroundImage: 'url(https://customer-assets.emergentagent.com/job_8b265523-4875-46c8-ab48-988eea2d3777/artifacts/prqvfd8b_wp5153882-pubg-fighting-wallpapers.jpg)'
             }}
           />
-          <div className="absolute inset-0 bg-black/70" style={{ zIndex: -1 }} />
+          <div className="absolute inset-0 bg-black/75 -z-10" />
           
           <div className="relative bg-[#1e2229]/95 backdrop-blur-md">
             {playerIdError && (
