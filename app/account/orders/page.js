@@ -67,14 +67,34 @@ export default function AccountOrdersPage() {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      pending: { label: 'Bekliyor', variant: 'secondary' },
-      paid: { label: 'Ödendi', variant: 'default' },
-      failed: { label: 'Başarısız', variant: 'destructive' }
+      pending: { label: 'Bekliyor', variant: 'secondary', color: 'bg-yellow-500' },
+      paid: { label: 'Ödendi', variant: 'default', color: 'bg-green-500' },
+      failed: { label: 'Başarısız', variant: 'destructive', color: 'bg-red-500' }
     };
 
-    const config = statusConfig[status] || { label: status, variant: 'secondary' };
+    const config = statusConfig[status] || { label: status, variant: 'secondary', color: 'bg-gray-500' };
     
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return (
+      <span className={`px-2 py-1 rounded text-xs font-semibold text-white ${config.color}`}>
+        {config.label}
+      </span>
+    );
+  };
+
+  const getDeliveryBadge = (delivery) => {
+    if (!delivery) {
+      return <span className="px-2 py-1 rounded text-xs font-semibold text-white bg-gray-500">Bilinmiyor</span>;
+    }
+
+    if (delivery.status === 'delivered') {
+      return <span className="px-2 py-1 rounded text-xs font-semibold text-white bg-green-500">✅ Teslim Edildi</span>;
+    }
+
+    if (delivery.status === 'pending') {
+      return <span className="px-2 py-1 rounded text-xs font-semibold text-white bg-yellow-500">⏳ Stok Bekleniyor</span>;
+    }
+
+    return <span className="px-2 py-1 rounded text-xs font-semibold text-white bg-gray-500">{delivery.status}</span>;
   };
 
   const handleLogout = () => {
