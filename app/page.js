@@ -529,41 +529,41 @@ export default function App() {
               </div>
 
               <div className="p-6 space-y-5">
-              <div>
-                <Label className="text-sm text-white/70 mb-2 block">Oyuncu ID'nizi girin</Label>
-                <Input
-                  placeholder="Oyuncu ID"
-                  value={playerId}
-                  onChange={(e) => {
-                    setPlayerId(e.target.value)
-                    setPlayerIdError('')
-                  }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handlePlayerIdConfirm()
-                    }
-                  }}
-                  className="h-12 px-4 text-sm bg-[#12161D] text-white placeholder:text-white/40 border border-white/10 focus:border-blue-500 rounded"
-                  autoFocus
-                />
-              </div>
+                <div>
+                  <Label className="text-sm text-white/70 mb-2 block">Oyuncu ID'nizi girin</Label>
+                  <Input
+                    placeholder="Oyuncu ID"
+                    value={playerId}
+                    onChange={(e) => {
+                      setPlayerId(e.target.value)
+                      setPlayerIdError('')
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handlePlayerIdConfirm()
+                      }
+                    }}
+                    className="h-12 px-4 text-sm bg-[#12161D] text-white placeholder:text-white/40 border border-white/10 focus:border-blue-500 rounded"
+                    autoFocus
+                  />
+                </div>
 
-              <Button
-                onClick={handlePlayerIdConfirm}
-                disabled={playerLoading}
-                className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base uppercase tracking-wide rounded-lg"
-              >
-                {playerLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Doğrulanıyor...
-                  </>
-                ) : (
-                  'Onayla'
-                )}
-              </Button>
+                <Button
+                  onClick={handlePlayerIdConfirm}
+                  disabled={playerLoading}
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base uppercase tracking-wide rounded-lg"
+                >
+                  {playerLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Doğrulanıyor...
+                    </>
+                  ) : (
+                    'Onayla'
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
           </div>
         </DialogContent>
       </Dialog>
