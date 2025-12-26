@@ -495,15 +495,15 @@ export default function App() {
       <Dialog open={playerIdModalOpen} onOpenChange={setPlayerIdModalOpen}>
         <DialogContent 
           className="max-w-[90vw] md:max-w-md p-0 gap-0 overflow-hidden border-0 bg-transparent" 
-          style={{ backgroundColor: 'transparent !important' }}
         >
           <div 
-            className="absolute inset-0 bg-cover bg-center blur-md -z-10"
+            className="absolute inset-0 bg-cover bg-center -z-10"
             style={{
-              backgroundImage: 'url(https://customer-assets.emergentagent.com/job_8b265523-4875-46c8-ab48-988eea2d3777/artifacts/prqvfd8b_wp5153882-pubg-fighting-wallpapers.jpg)'
+              backgroundImage: 'url(https://customer-assets.emergentagent.com/job_8b265523-4875-46c8-ab48-988eea2d3777/artifacts/prqvfd8b_wp5153882-pubg-fighting-wallpapers.jpg)',
+              filter: 'blur(8px)'
             }}
           />
-          <div className="absolute inset-0 bg-black/75 -z-10" />
+          <div className="absolute inset-0 bg-black/50 -z-10" />
           
           <div className="relative bg-[#1e2229]/95 backdrop-blur-md">
             {playerIdError && (
