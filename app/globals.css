@@ -140,7 +140,8 @@ code {
     }
 }
 
-/* Dialog overlay transparency for background visibility */
+/* Dialog overlay - completely transparent to show modal backgrounds */
 [data-radix-dialog-overlay] {
-  background-color: transparent !important;
+  background-color: rgba(0, 0, 0, 0) !important;
+  backdrop-filter: none !important;
 }
