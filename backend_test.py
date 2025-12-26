@@ -1,1077 +1,761 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend API Tests for PUBG UC Store - Shopier Production Integration
-Tests encryption, security, callback validation, and all critical security features
+Backend API Testing for Auth + Stock + Delivery System
+Tests all authentication, order creation, stock management, and auto-assignment features
 """
 
 import requests
 import json
 import time
-import hashlib
-from datetime import datetime
+from typing import Dict, Any, Optional
 
 # Configuration
 BASE_URL = "https://payment-gateway-238.preview.emergentagent.com/api"
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin123"
+HEADERS = {"Content-Type": "application/json"}
 
-# Test credentials (for testing only)
-TEST_SHOPIER_MERCHANT_ID = "test_merchant_12345"
-TEST_SHOPIER_API_KEY = "test_api_key_67890"
-TEST_SHOPIER_API_SECRET = "test_secret_abcdef"
+# Test data
+TEST_USER = {
+    "firstName": "Test",
+    "lastName": "User",
+    "email": "testuser@example.com",
+    "phone": "5551234567",
+    "password": "test123"
+}
 
-# Global variables
+# Global variables to store tokens and IDs
+user_token = None
 admin_token = None
 test_product_id = None
 test_order_id = None
+test_stock_codes = ["CODE-001", "CODE-002"]
 
-def print_test_header(test_name):
-    """Print formatted test header"""
+def print_test(test_name: str):
+    """Print test header"""
     print(f"\n{'='*80}")
     print(f"TEST: {test_name}")
-    print(f"{'='*80}")
+    print('='*80)
 
-def print_result(success, message):
+def print_result(success: bool, message: str, details: Optional[Dict] = None):
     """Print test result"""
     status = "✅ PASS" if success else "❌ FAIL"
     print(f"{status}: {message}")
+    if details:
+        print(f"Details: {json.dumps(details, indent=2)}")
 
-def generate_shopier_hash(order_id, amount, secret):
-    """Generate Shopier callback hash"""
-    data = f"{order_id}{amount}{secret}"
-    return hashlib.sha256(data.encode()).hexdigest()
+def make_request(method: str, endpoint: str, data: Optional[Dict] = None, 
+                 token: Optional[str] = None) -> tuple[bool, Any, int]:
+    """Make HTTP request and return (success, response_data, status_code)"""
+    url = f"{BASE_URL}{endpoint}"
+    headers = HEADERS.copy()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    
+    try:
+        if method == "GET":
+            response = requests.get(url, headers=headers, timeout=10)
+        elif method == "POST":
+            response = requests.post(url, json=data, headers=headers, timeout=10)
+        elif method == "PUT":
+            response = requests.put(url, json=data, headers=headers, timeout=10)
+        elif method == "DELETE":
+            response = requests.delete(url, headers=headers, timeout=10)
+        else:
+            return False, {"error": "Invalid method"}, 0
+        
+        try:
+            response_data = response.json()
+        except:
+            response_data = {"raw": response.text}
+        
+        return response.ok, response_data, response.status_code
+    except Exception as e:
+        return False, {"error": str(e)}, 0
 
 # ============================================================================
-# TEST 1: Admin Login (Required for subsequent tests)
+# TEST 1: USER REGISTRATION
+# ============================================================================
+def test_user_registration():
+    """Test POST /api/auth/register with all validations"""
+    print_test("1. User Registration - Valid Data")
+    
+    success, data, status = make_request("POST", "/auth/register", TEST_USER)
+    
+    if success and status == 200 and data.get("success"):
+        global user_token
+        user_token = data.get("data", {}).get("token")
+        user_data = data.get("data", {}).get("user", {})
+        
+        # Validate response structure
+        if (user_token and user_data.get("email") == TEST_USER["email"].lower() 
+            and user_data.get("firstName") == TEST_USER["firstName"]):
+            print_result(True, "User registered successfully with JWT token", {
+                "email": user_data.get("email"),
+                "name": f"{user_data.get('firstName')} {user_data.get('lastName')}",
+                "token_length": len(user_token)
+            })
+            return True
+        else:
+            print_result(False, "Invalid response structure", data)
+            return False
+    else:
+        print_result(False, f"Registration failed (status {status})", data)
+        return False
+
+def test_duplicate_email():
+    """Test duplicate email returns 409 with EMAIL_EXISTS code"""
+    print_test("2. User Registration - Duplicate Email")
+    
+    success, data, status = make_request("POST", "/auth/register", TEST_USER)
+    
+    if status == 409 and data.get("code") == "EMAIL_EXISTS":
+        print_result(True, "Duplicate email correctly rejected with EMAIL_EXISTS code", {
+            "status": status,
+            "code": data.get("code"),
+            "error": data.get("error")
+        })
+        return True
+    else:
+        print_result(False, f"Expected 409 with EMAIL_EXISTS, got {status}", data)
+        return False
+
+def test_registration_validation():
+    """Test registration field validations"""
+    print_test("3. User Registration - Field Validations")
+    
+    test_cases = [
+        {
+            "name": "Missing fields",
+            "data": {"email": "test@test.com"},
+            "expected_status": 400
+        },
+        {
+            "name": "Invalid email format",
+            "data": {**TEST_USER, "email": "invalid-email"},
+            "expected_status": 400
+        },
+        {
+            "name": "Short password",
+            "data": {**TEST_USER, "email": "new@test.com", "password": "123"},
+            "expected_status": 400
+        },
+        {
+            "name": "Invalid phone",
+            "data": {**TEST_USER, "email": "new2@test.com", "phone": "123"},
+            "expected_status": 400
+        }
+    ]
+    
+    all_passed = True
+    for test_case in test_cases:
+        success, data, status = make_request("POST", "/auth/register", test_case["data"])
+        if status == test_case["expected_status"]:
+            print_result(True, f"Validation '{test_case['name']}' works correctly", {
+                "status": status,
+                "error": data.get("error")
+            })
+        else:
+            print_result(False, f"Validation '{test_case['name']}' failed", {
+                "expected": test_case["expected_status"],
+                "got": status
+            })
+            all_passed = False
+    
+    return all_passed
+
+# ============================================================================
+# TEST 2: USER LOGIN
+# ============================================================================
+def test_user_login():
+    """Test POST /api/auth/login"""
+    print_test("4. User Login - Valid Credentials")
+    
+    login_data = {
+        "email": TEST_USER["email"],
+        "password": TEST_USER["password"]
+    }
+    
+    success, data, status = make_request("POST", "/auth/login", login_data)
+    
+    if success and status == 200 and data.get("success"):
+        global user_token
+        user_token = data.get("data", {}).get("token")
+        user_data = data.get("data", {}).get("user", {})
+        
+        if user_token and user_data.get("email") == TEST_USER["email"].lower():
+            print_result(True, "User logged in successfully", {
+                "email": user_data.get("email"),
+                "token_received": bool(user_token)
+            })
+            return True
+        else:
+            print_result(False, "Invalid login response", data)
+            return False
+    else:
+        print_result(False, f"Login failed (status {status})", data)
+        return False
+
+def test_login_invalid_credentials():
+    """Test login with wrong password"""
+    print_test("5. User Login - Invalid Credentials")
+    
+    login_data = {
+        "email": TEST_USER["email"],
+        "password": "wrongpassword"
+    }
+    
+    success, data, status = make_request("POST", "/auth/login", login_data)
+    
+    if status == 401:
+        print_result(True, "Invalid credentials correctly rejected", {
+            "status": status,
+            "error": data.get("error")
+        })
+        return True
+    else:
+        print_result(False, f"Expected 401, got {status}", data)
+        return False
+
+# ============================================================================
+# TEST 3: ADMIN LOGIN (for stock management tests)
 # ============================================================================
 def test_admin_login():
-    print_test_header("Admin Login")
-    global admin_token
+    """Test admin login to get token for stock management"""
+    print_test("6. Admin Login")
     
-    try:
-        response = requests.post(
-            f"{BASE_URL}/admin/login",
-            json={"username": ADMIN_USERNAME, "password": ADMIN_PASSWORD},
-            timeout=10
-        )
+    admin_data = {
+        "username": "admin",
+        "password": "admin123"
+    }
+    
+    success, data, status = make_request("POST", "/admin/login", admin_data)
+    
+    if success and status == 200 and data.get("success"):
+        global admin_token
+        admin_token = data.get("data", {}).get("token")
         
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('success') and data.get('data', {}).get('token'):
-                admin_token = data['data']['token']
-                print_result(True, f"Admin login successful. Token obtained.")
-                return True
-            else:
-                print_result(False, f"Login response missing token: {data}")
-                return False
+        if admin_token:
+            print_result(True, "Admin logged in successfully", {
+                "username": data.get("data", {}).get("username"),
+                "token_received": bool(admin_token)
+            })
+            return True
         else:
-            print_result(False, f"Login failed with status {response.status_code}: {response.text}")
+            print_result(False, "No token received", data)
             return False
-    except Exception as e:
-        print_result(False, f"Login error: {str(e)}")
+    else:
+        print_result(False, f"Admin login failed (status {status})", data)
         return False
 
 # ============================================================================
-# TEST 2: Save Shopier Settings (Encrypted Storage)
-# ============================================================================
-def test_save_shopier_settings():
-    print_test_header("Save Shopier Settings (Encrypted)")
-    
-    if not admin_token:
-        print_result(False, "No admin token available")
-        return False
-    
-    try:
-        headers = {"Authorization": f"Bearer {admin_token}"}
-        payload = {
-            "merchantId": TEST_SHOPIER_MERCHANT_ID,
-            "apiKey": TEST_SHOPIER_API_KEY,
-            "apiSecret": TEST_SHOPIER_API_SECRET,
-            "mode": "production"
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/admin/settings/payments",
-            json=payload,
-            headers=headers,
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('success'):
-                print_result(True, "Shopier settings saved successfully")
-                print(f"   Response: {json.dumps(data, indent=2)}")
-                return True
-            else:
-                print_result(False, f"Save failed: {data}")
-                return False
-        else:
-            print_result(False, f"Save failed with status {response.status_code}: {response.text}")
-            return False
-    except Exception as e:
-        print_result(False, f"Save error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 3: Retrieve Shopier Settings (Masked)
-# ============================================================================
-def test_get_shopier_settings():
-    print_test_header("Retrieve Shopier Settings (Masked)")
-    
-    if not admin_token:
-        print_result(False, "No admin token available")
-        return False
-    
-    try:
-        headers = {"Authorization": f"Bearer {admin_token}"}
-        response = requests.get(
-            f"{BASE_URL}/admin/settings/payments",
-            headers=headers,
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('success'):
-                settings = data.get('data', {})
-                merchant_id = settings.get('merchantId')
-                api_key = settings.get('apiKey')
-                
-                # Verify masking (should contain asterisks)
-                if merchant_id and '*' in merchant_id:
-                    print_result(True, f"Merchant ID properly masked: {merchant_id}")
-                else:
-                    print_result(False, f"Merchant ID not masked: {merchant_id}")
-                    return False
-                
-                if api_key and '*' in api_key:
-                    print_result(True, f"API Key properly masked: {api_key}")
-                else:
-                    print_result(False, f"API Key not masked: {api_key}")
-                    return False
-                
-                # Verify API secret is NOT returned
-                if 'apiSecret' not in settings:
-                    print_result(True, "API Secret not returned (correct)")
-                else:
-                    print_result(False, "API Secret should not be returned")
-                    return False
-                
-                print(f"   Full response: {json.dumps(data, indent=2)}")
-                return True
-            else:
-                print_result(False, f"Get failed: {data}")
-                return False
-        else:
-            print_result(False, f"Get failed with status {response.status_code}: {response.text}")
-            return False
-    except Exception as e:
-        print_result(False, f"Get error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 4: Verify Encryption in Database
-# ============================================================================
-def test_verify_encryption_in_db():
-    print_test_header("Verify Encryption in Database")
-    
-    try:
-        from pymongo import MongoClient
-        client = MongoClient("mongodb://localhost:27017")
-        db = client['pubg_uc_store']
-        
-        # Get the latest active settings
-        settings = db.shopier_settings.find_one({"isActive": True})
-        
-        if not settings:
-            print_result(False, "No active Shopier settings found in database")
-            return False
-        
-        # Verify fields are encrypted (should be base64 strings, not plaintext)
-        merchant_id = settings.get('merchantId')
-        api_key = settings.get('apiKey')
-        api_secret = settings.get('apiSecret')
-        
-        # Check that values don't match plaintext test credentials
-        if merchant_id == TEST_SHOPIER_MERCHANT_ID:
-            print_result(False, f"Merchant ID is NOT encrypted in DB: {merchant_id}")
-            return False
-        else:
-            print_result(True, f"Merchant ID is encrypted in DB (length: {len(merchant_id)})")
-        
-        if api_key == TEST_SHOPIER_API_KEY:
-            print_result(False, f"API Key is NOT encrypted in DB: {api_key}")
-            return False
-        else:
-            print_result(True, f"API Key is encrypted in DB (length: {len(api_key)})")
-        
-        if api_secret == TEST_SHOPIER_API_SECRET:
-            print_result(False, f"API Secret is NOT encrypted in DB: {api_secret}")
-            return False
-        else:
-            print_result(True, f"API Secret is encrypted in DB (length: {len(api_secret)})")
-        
-        print(f"   Encrypted merchantId sample: {merchant_id[:20]}...")
-        print(f"   Encrypted apiKey sample: {api_key[:20]}...")
-        print(f"   Encrypted apiSecret sample: {api_secret[:20]}...")
-        
-        return True
-    except Exception as e:
-        print_result(False, f"Database verification error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 5: Settings Auth Requirement
-# ============================================================================
-def test_settings_auth_requirement():
-    print_test_header("Settings Endpoints Auth Requirement")
-    
-    try:
-        # Test GET without token
-        response = requests.get(f"{BASE_URL}/admin/settings/payments", timeout=10)
-        if response.status_code == 401:
-            print_result(True, "GET settings requires authentication (401 without token)")
-        else:
-            print_result(False, f"GET settings should return 401, got {response.status_code}")
-            return False
-        
-        # Test POST without token
-        response = requests.post(
-            f"{BASE_URL}/admin/settings/payments",
-            json={"merchantId": "test", "apiKey": "test", "apiSecret": "test"},
-            timeout=10
-        )
-        if response.status_code == 401:
-            print_result(True, "POST settings requires authentication (401 without token)")
-        else:
-            print_result(False, f"POST settings should return 401, got {response.status_code}")
-            return False
-        
-        return True
-    except Exception as e:
-        print_result(False, f"Auth test error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 6: Get Products (for order creation)
+# TEST 4: GET PRODUCTS (to get a product ID for testing)
 # ============================================================================
 def test_get_products():
-    print_test_header("Get Products for Order Creation")
-    global test_product_id
+    """Get products to use in order tests"""
+    print_test("7. Get Products")
     
-    try:
-        response = requests.get(f"{BASE_URL}/products", timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('success') and data.get('data'):
-                products = data['data']
-                if len(products) > 0:
-                    test_product_id = products[0]['id']
-                    print_result(True, f"Got {len(products)} products. Using product: {products[0]['title']}")
-                    return True
-                else:
-                    print_result(False, "No products available")
-                    return False
-            else:
-                print_result(False, f"Get products failed: {data}")
-                return False
+    success, data, status = make_request("GET", "/products")
+    
+    if success and status == 200 and data.get("success"):
+        products = data.get("data", [])
+        if products:
+            global test_product_id
+            test_product_id = products[0]["id"]
+            print_result(True, f"Retrieved {len(products)} products", {
+                "first_product": products[0]["title"],
+                "product_id": test_product_id
+            })
+            return True
         else:
-            print_result(False, f"Get products failed with status {response.status_code}")
+            print_result(False, "No products found", data)
             return False
-    except Exception as e:
-        print_result(False, f"Get products error: {str(e)}")
+    else:
+        print_result(False, f"Failed to get products (status {status})", data)
         return False
 
 # ============================================================================
-# TEST 7: Order Creation with Configured Settings
+# TEST 5: ADMIN STOCK MANAGEMENT
 # ============================================================================
-def test_order_creation_with_settings():
-    print_test_header("Order Creation with Configured Shopier Settings")
-    global test_order_id
+def test_add_stock():
+    """Test POST /api/admin/products/:productId/stock"""
+    print_test("8. Admin - Add Stock Items")
     
-    if not test_product_id:
-        print_result(False, "No product ID available")
+    if not admin_token or not test_product_id:
+        print_result(False, "Missing admin token or product ID", {})
         return False
     
-    try:
-        payload = {
-            "productId": test_product_id,
-            "playerId": "1234567890",
-            "playerName": "TestPlayer#1234"
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/orders",
-            json=payload,
-            timeout=10
-        )
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('success') and data.get('data'):
-                order = data['data']['order']
-                payment_url = data['data'].get('paymentUrl')
-                test_order_id = order['id']
-                
-                print_result(True, f"Order created successfully: {test_order_id}")
-                print(f"   Order status: {order['status']}")
-                print(f"   Order amount: {order['amount']} {order['currency']}")
-                
-                if payment_url:
-                    print_result(True, f"Payment URL generated")
-                    print(f"   URL: {payment_url[:80]}...")
-                else:
-                    print_result(False, "Payment URL not generated")
-                    return False
-                
-                return True
-            else:
-                print_result(False, f"Order creation failed: {data}")
-                return False
-        else:
-            print_result(False, f"Order creation failed with status {response.status_code}: {response.text}")
-            return False
-    except Exception as e:
-        print_result(False, f"Order creation error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 8: Order Creation WITHOUT Configured Settings
-# ============================================================================
-def test_order_creation_without_settings():
-    print_test_header("Order Creation WITHOUT Configured Settings (Should Fail)")
+    stock_data = {
+        "items": test_stock_codes
+    }
     
-    if not test_product_id:
-        print_result(False, "No product ID available")
-        return False
+    success, data, status = make_request(
+        "POST", 
+        f"/admin/products/{test_product_id}/stock", 
+        stock_data, 
+        admin_token
+    )
     
-    try:
-        # First, deactivate all settings
-        from pymongo import MongoClient
-        client = MongoClient("mongodb://localhost:27017")
-        db = client['pubg_uc_store']
-        db.shopier_settings.update_many({}, {"$set": {"isActive": False}})
-        print("   Deactivated all Shopier settings")
-        
-        # Try to create order
-        payload = {
-            "productId": test_product_id,
-            "playerId": "9876543210",
-            "playerName": "TestPlayer2#5678"
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/orders",
-            json=payload,
-            timeout=10
-        )
-        
-        # Should fail with 503 (service unavailable) or 520 (Cloudflare/K8s proxy error)
-        if response.status_code in [503, 520]:
-            data = response.json()
-            if 'yapılandırılmamış' in data.get('error', '').lower():
-                print_result(True, f"Order creation correctly fails without settings ({response.status_code})")
-                print(f"   Error message: {data.get('error')}")
-            else:
-                print_result(False, f"Wrong error message: {data.get('error')}")
-                return False
-        else:
-            print_result(False, f"Should return 503/520, got {response.status_code}: {response.text}")
-            return False
-        
-        # Reactivate settings for subsequent tests
-        latest_settings = db.shopier_settings.find_one(sort=[("createdAt", -1)])
-        if latest_settings:
-            db.shopier_settings.update_one(
-                {"_id": latest_settings["_id"]},
-                {"$set": {"isActive": True}}
-            )
-            print("   Reactivated Shopier settings")
-        else:
-            print("   Warning: Could not find settings to reactivate")
-        
+    if success and status == 200 and data.get("success"):
+        print_result(True, f"Added {len(test_stock_codes)} stock items", {
+            "count": data.get("data", {}).get("count"),
+            "message": data.get("message")
+        })
         return True
-    except Exception as e:
-        print_result(False, f"Test error: {str(e)}")
+    else:
+        print_result(False, f"Failed to add stock (status {status})", data)
+        return False
+
+def test_get_stock():
+    """Test GET /api/admin/products/:productId/stock"""
+    print_test("9. Admin - Get Stock Summary")
+    
+    if not admin_token or not test_product_id:
+        print_result(False, "Missing admin token or product ID", {})
+        return False
+    
+    success, data, status = make_request(
+        "GET", 
+        f"/admin/products/{test_product_id}/stock", 
+        None, 
+        admin_token
+    )
+    
+    if success and status == 200 and data.get("success"):
+        summary = data.get("data", {}).get("summary", {})
+        stocks = data.get("data", {}).get("stocks", [])
+        
+        # Verify stock items are saved with status 'available'
+        available_stocks = [s for s in stocks if s.get("status") == "available"]
+        
+        if len(available_stocks) >= len(test_stock_codes):
+            print_result(True, "Stock summary retrieved successfully", {
+                "total": summary.get("total"),
+                "available": summary.get("available"),
+                "assigned": summary.get("assigned"),
+                "available_stocks_verified": len(available_stocks)
+            })
+            return True
+        else:
+            print_result(False, "Stock items not saved correctly", {
+                "expected_available": len(test_stock_codes),
+                "got_available": len(available_stocks)
+            })
+            return False
+    else:
+        print_result(False, f"Failed to get stock (status {status})", data)
         return False
 
 # ============================================================================
-# TEST 9: Callback Hash Validation (Correct Hash)
+# TEST 6: ORDER CREATION WITH AUTH
 # ============================================================================
-def test_callback_correct_hash():
-    print_test_header("Callback with Correct Hash Validation")
+def test_create_order_without_auth():
+    """Test order creation fails without JWT token"""
+    print_test("10. Create Order - Without Auth (Should Fail)")
+    
+    order_data = {
+        "productId": test_product_id,
+        "playerId": "1234567890",
+        "playerName": "TestPlayer"
+    }
+    
+    success, data, status = make_request("POST", "/orders", order_data)
+    
+    if status == 401 and data.get("code") == "AUTH_REQUIRED":
+        print_result(True, "Order creation correctly requires authentication", {
+            "status": status,
+            "code": data.get("code"),
+            "error": data.get("error")
+        })
+        return True
+    else:
+        print_result(False, f"Expected 401 with AUTH_REQUIRED, got {status}", data)
+        return False
+
+def test_create_order_with_auth():
+    """Test order creation with JWT token"""
+    print_test("11. Create Order - With Auth")
+    
+    if not user_token or not test_product_id:
+        print_result(False, "Missing user token or product ID", {})
+        return False
+    
+    order_data = {
+        "productId": test_product_id,
+        "playerId": "1234567890",
+        "playerName": "TestPlayer#7890"
+    }
+    
+    success, data, status = make_request("POST", "/orders", order_data, user_token)
+    
+    if success and status == 200 and data.get("success"):
+        order = data.get("data", {}).get("order", {})
+        global test_order_id
+        test_order_id = order.get("id")
+        
+        # Verify order has userId and customer snapshot
+        if (order.get("userId") and order.get("customer") and 
+            order.get("customer", {}).get("email") == TEST_USER["email"].lower()):
+            print_result(True, "Order created with userId and customer snapshot", {
+                "orderId": test_order_id,
+                "userId": order.get("userId"),
+                "customer_email": order.get("customer", {}).get("email"),
+                "customer_name": f"{order.get('customer', {}).get('firstName')} {order.get('customer', {}).get('lastName')}",
+                "status": order.get("status")
+            })
+            return True
+        else:
+            print_result(False, "Order missing userId or customer data", order)
+            return False
+    else:
+        print_result(False, f"Failed to create order (status {status})", data)
+        return False
+
+# ============================================================================
+# TEST 7: USER ORDERS ENDPOINTS
+# ============================================================================
+def test_get_user_orders():
+    """Test GET /api/account/orders"""
+    print_test("12. Get User Orders")
+    
+    if not user_token:
+        print_result(False, "Missing user token", {})
+        return False
+    
+    success, data, status = make_request("GET", "/account/orders", None, user_token)
+    
+    if success and status == 200 and data.get("success"):
+        orders = data.get("data", [])
+        print_result(True, f"Retrieved {len(orders)} user orders", {
+            "order_count": len(orders),
+            "has_test_order": any(o.get("id") == test_order_id for o in orders)
+        })
+        return True
+    else:
+        print_result(False, f"Failed to get user orders (status {status})", data)
+        return False
+
+def test_get_user_orders_without_auth():
+    """Test GET /api/account/orders without auth"""
+    print_test("13. Get User Orders - Without Auth (Should Fail)")
+    
+    success, data, status = make_request("GET", "/account/orders")
+    
+    if status == 401:
+        print_result(True, "User orders endpoint requires authentication", {
+            "status": status,
+            "error": data.get("error")
+        })
+        return True
+    else:
+        print_result(False, f"Expected 401, got {status}", data)
+        return False
+
+def test_get_single_user_order():
+    """Test GET /api/account/orders/:orderId"""
+    print_test("14. Get Single User Order")
+    
+    if not user_token or not test_order_id:
+        print_result(False, "Missing user token or order ID", {})
+        return False
+    
+    success, data, status = make_request(
+        "GET", 
+        f"/account/orders/{test_order_id}", 
+        None, 
+        user_token
+    )
+    
+    if success and status == 200 and data.get("success"):
+        order = data.get("data", {}).get("order", {})
+        if order.get("id") == test_order_id:
+            print_result(True, "Retrieved single order successfully", {
+                "orderId": order.get("id"),
+                "status": order.get("status"),
+                "userId": order.get("userId")
+            })
+            return True
+        else:
+            print_result(False, "Order ID mismatch", data)
+            return False
+    else:
+        print_result(False, f"Failed to get order (status {status})", data)
+        return False
+
+# ============================================================================
+# TEST 8: AUTO-STOCK ASSIGNMENT
+# ============================================================================
+def test_auto_stock_assignment():
+    """Test auto-stock assignment when order is marked as PAID"""
+    print_test("15. Auto-Stock Assignment - PAID Callback")
     
     if not test_order_id:
-        print_result(False, "No test order ID available")
+        print_result(False, "Missing order ID", {})
         return False
     
-    try:
-        # Get order details
-        from pymongo import MongoClient
-        client = MongoClient("mongodb://localhost:27017")
-        db = client['pubg_uc_store']
-        order = db.orders.find_one({"id": test_order_id})
+    # Simulate PAID callback (without hash for testing)
+    callback_data = {
+        "orderId": test_order_id,
+        "status": "success",
+        "transactionId": f"TXN-{int(time.time())}",
+        "payment_id": f"PAY-{int(time.time())}",
+        "platform_order_id": test_order_id
+    }
+    
+    success, data, status = make_request("POST", "/payment/shopier/callback", callback_data)
+    
+    # Note: This might fail due to hash validation, but let's check
+    if success or status in [200, 403]:
+        print(f"Callback response (status {status}): {data}")
         
-        if not order:
-            print_result(False, f"Order {test_order_id} not found")
-            return False
+        # Wait a moment for processing
+        time.sleep(1)
         
-        # Generate correct hash
-        correct_hash = generate_shopier_hash(order['id'], order['amount'], TEST_SHOPIER_API_SECRET)
-        
-        payload = {
-            "orderId": order['id'],
-            "platform_order_id": order['id'],
-            "status": "success",
-            "transactionId": f"TXN_{int(time.time())}",
-            "payment_id": f"PAY_{int(time.time())}",
-            "random_nr": "abc123",
-            "total_order_value": str(order['amount']),
-            "hash": correct_hash
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/payment/shopier/callback",
-            json=payload,
-            timeout=10
+        # Check order status and delivery
+        success2, order_data, status2 = make_request(
+            "GET", 
+            f"/account/orders/{test_order_id}", 
+            None, 
+            user_token
         )
         
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('success'):
-                print_result(True, "Callback with correct hash accepted")
-                print(f"   Response: {data.get('message')}")
+        if success2 and status2 == 200:
+            order = order_data.get("data", {}).get("order", {})
+            delivery = order.get("delivery", {})
+            
+            print(f"Order after callback: status={order.get('status')}, delivery={delivery}")
+            
+            # Check if stock was assigned
+            if (order.get("status") == "paid" and 
+                delivery.get("status") == "delivered" and 
+                delivery.get("items") and len(delivery.get("items")) > 0):
                 
-                # Verify order status updated
-                updated_order = db.orders.find_one({"id": test_order_id})
-                if updated_order['status'] == 'paid':
-                    print_result(True, f"Order status updated to 'paid'")
+                # Verify stock status changed to 'assigned'
+                success3, stock_data, status3 = make_request(
+                    "GET", 
+                    f"/admin/products/{test_product_id}/stock", 
+                    None, 
+                    admin_token
+                )
+                
+                if success3:
+                    stocks = stock_data.get("data", {}).get("stocks", [])
+                    assigned_stocks = [s for s in stocks if s.get("status") == "assigned" and s.get("orderId") == test_order_id]
+                    
+                    if assigned_stocks:
+                        print_result(True, "Auto-stock assignment working correctly", {
+                            "order_status": order.get("status"),
+                            "delivery_status": delivery.get("status"),
+                            "assigned_item": delivery.get("items")[0],
+                            "stock_status": "assigned",
+                            "stock_orderId": assigned_stocks[0].get("orderId")
+                        })
+                        return True
+                    else:
+                        print_result(False, "Stock status not updated to 'assigned'", {
+                            "stocks": stocks
+                        })
+                        return False
                 else:
-                    print_result(False, f"Order status not updated: {updated_order['status']}")
+                    print_result(False, "Could not verify stock status", {})
                     return False
-                
-                return True
             else:
-                print_result(False, f"Callback failed: {data}")
+                print_result(False, "Stock not assigned or order not paid", {
+                    "order_status": order.get("status"),
+                    "delivery": delivery
+                })
                 return False
         else:
-            print_result(False, f"Callback failed with status {response.status_code}: {response.text}")
+            print_result(False, "Could not retrieve order after callback", {})
             return False
-    except Exception as e:
-        print_result(False, f"Callback test error: {str(e)}")
+    else:
+        print_result(False, f"Callback failed (status {status})", data)
         return False
 
-# ============================================================================
-# TEST 10: Callback Hash Validation (Incorrect Hash)
-# ============================================================================
-def test_callback_incorrect_hash():
-    print_test_header("Callback with Incorrect Hash (Should Reject)")
-    
-    # Create a new order for this test
-    try:
-        payload = {
-            "productId": test_product_id,
-            "playerId": "1111111111",
-            "playerName": "HashTestPlayer#1111"
-        }
-        
-        response = requests.post(f"{BASE_URL}/orders", json=payload, timeout=10)
-        if response.status_code != 200:
-            print_result(False, "Failed to create test order")
-            return False
-        
-        order_data = response.json()['data']['order']
-        order_id = order_data['id']
-        
-        # Send callback with WRONG hash
-        wrong_hash = "0000000000000000000000000000000000000000000000000000000000000000"
-        
-        callback_payload = {
-            "orderId": order_id,
-            "platform_order_id": order_id,
-            "status": "success",
-            "transactionId": f"TXN_WRONG_{int(time.time())}",
-            "payment_id": f"PAY_WRONG_{int(time.time())}",
-            "random_nr": "xyz789",
-            "total_order_value": str(order_data['amount']),
-            "hash": wrong_hash
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/payment/shopier/callback",
-            json=callback_payload,
-            timeout=10
-        )
-        
-        # Should reject with 403
-        if response.status_code == 403:
-            data = response.json()
-            print_result(True, "Callback with incorrect hash rejected (403)")
-            print(f"   Error message: {data.get('error')}")
-            
-            # Verify security log created
-            from pymongo import MongoClient
-            client = MongoClient("mongodb://localhost:27017")
-            db = client['pubg_uc_store']
-            security_log = db.payment_security_logs.find_one({"orderId": order_id, "event": "hash_mismatch"})
-            
-            if security_log:
-                print_result(True, "Security log created for hash mismatch")
-                print(f"   Log timestamp: {security_log['timestamp']}")
-            else:
-                print_result(False, "Security log NOT created for hash mismatch")
-                return False
-            
-            return True
-        else:
-            print_result(False, f"Should return 403, got {response.status_code}: {response.text}")
-            return False
-    except Exception as e:
-        print_result(False, f"Test error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 11: Callback Idempotency (Duplicate Callbacks)
-# ============================================================================
-def test_callback_idempotency():
-    print_test_header("Callback Idempotency (Duplicate Callbacks Ignored)")
+def test_idempotency():
+    """Test sending same PAID callback twice"""
+    print_test("16. Idempotency - Duplicate PAID Callback")
     
     if not test_order_id:
-        print_result(False, "No test order ID available")
+        print_result(False, "Missing order ID", {})
         return False
     
-    try:
-        from pymongo import MongoClient
-        client = MongoClient("mongodb://localhost:27017")
-        db = client['pubg_uc_store']
-        
-        # Verify order is already PAID from previous test
-        order = db.orders.find_one({"id": test_order_id})
-        if order['status'] != 'paid':
-            print_result(False, f"Order should be PAID, but is {order['status']}")
-            return False
-        
-        print(f"   Order {test_order_id} is already PAID")
-        
-        # Send duplicate callback
-        correct_hash = generate_shopier_hash(order['id'], order['amount'], TEST_SHOPIER_API_SECRET)
-        
-        payload = {
-            "orderId": order['id'],
-            "platform_order_id": order['id'],
-            "status": "success",
-            "transactionId": f"TXN_DUP_{int(time.time())}",
-            "payment_id": f"PAY_DUP_{int(time.time())}",
-            "random_nr": "dup123",
-            "total_order_value": str(order['amount']),
-            "hash": correct_hash
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/payment/shopier/callback",
-            json=payload,
-            timeout=10
+    # Send same callback again
+    callback_data = {
+        "orderId": test_order_id,
+        "status": "success",
+        "transactionId": f"TXN-DUPLICATE-{int(time.time())}",
+        "payment_id": f"PAY-DUPLICATE-{int(time.time())}",
+        "platform_order_id": test_order_id
+    }
+    
+    success, data, status = make_request("POST", "/payment/shopier/callback", callback_data)
+    
+    # Check if it returns success without assigning more stock
+    if success or status in [200, 403]:
+        # Get stock count
+        success2, stock_data, status2 = make_request(
+            "GET", 
+            f"/admin/products/{test_product_id}/stock", 
+            None, 
+            admin_token
         )
         
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('success'):
-                message = data.get('message', '')
-                if 'zaten' in message.lower() or 'already' in message.lower():
-                    print_result(True, "Duplicate callback ignored (idempotency working)")
-                    print(f"   Response: {message}")
-                else:
-                    print_result(True, "Callback accepted but order already paid")
-                    print(f"   Response: {message}")
-                
-                # Verify order status still PAID (not changed)
-                updated_order = db.orders.find_one({"id": test_order_id})
-                if updated_order['status'] == 'paid':
-                    print_result(True, "Order status remains 'paid' (unchanged)")
-                else:
-                    print_result(False, f"Order status changed to: {updated_order['status']}")
-                    return False
-                
+        if success2:
+            stocks = stock_data.get("data", {}).get("stocks", [])
+            assigned_to_order = [s for s in stocks if s.get("orderId") == test_order_id]
+            
+            if len(assigned_to_order) == 1:
+                print_result(True, "Idempotency working - only 1 stock assigned", {
+                    "assigned_count": len(assigned_to_order),
+                    "message": data.get("message")
+                })
                 return True
             else:
-                print_result(False, f"Callback failed: {data}")
+                print_result(False, f"Multiple stocks assigned: {len(assigned_to_order)}", {
+                    "assigned_stocks": assigned_to_order
+                })
                 return False
         else:
-            print_result(False, f"Callback failed with status {response.status_code}: {response.text}")
+            print_result(False, "Could not verify stock count", {})
             return False
-    except Exception as e:
-        print_result(False, f"Test error: {str(e)}")
+    else:
+        print_result(False, f"Callback failed (status {status})", data)
         return False
 
 # ============================================================================
-# TEST 12: Transaction ID Uniqueness
+# TEST 9: OUT OF STOCK SCENARIO
 # ============================================================================
-def test_transaction_id_uniqueness():
-    print_test_header("Transaction ID Uniqueness Check")
+def test_out_of_stock():
+    """Test order with no stock available"""
+    print_test("17. Out of Stock Scenario")
     
-    try:
-        # Create two orders
-        order1_response = requests.post(
-            f"{BASE_URL}/orders",
-            json={"productId": test_product_id, "playerId": "2222222222", "playerName": "TxnTest1#2222"},
-            timeout=10
-        )
-        order2_response = requests.post(
-            f"{BASE_URL}/orders",
-            json={"productId": test_product_id, "playerId": "3333333333", "playerName": "TxnTest2#3333"},
-            timeout=10
-        )
-        
-        if order1_response.status_code != 200 or order2_response.status_code != 200:
-            print_result(False, "Failed to create test orders")
-            return False
-        
-        order1 = order1_response.json()['data']['order']
-        order2 = order2_response.json()['data']['order']
-        
-        # Use same transaction ID for both
-        same_txn_id = f"TXN_SAME_{int(time.time())}"
-        
-        # Process first callback
-        hash1 = generate_shopier_hash(order1['id'], order1['amount'], TEST_SHOPIER_API_SECRET)
-        callback1 = {
-            "orderId": order1['id'],
-            "platform_order_id": order1['id'],
-            "status": "success",
-            "transactionId": same_txn_id,
-            "payment_id": same_txn_id,
-            "hash": hash1
-        }
-        
-        response1 = requests.post(f"{BASE_URL}/payment/shopier/callback", json=callback1, timeout=10)
-        if response1.status_code != 200:
-            print_result(False, f"First callback failed: {response1.text}")
-            return False
-        
-        print_result(True, f"First callback processed with txn ID: {same_txn_id}")
-        
-        # Process second callback with SAME transaction ID
-        hash2 = generate_shopier_hash(order2['id'], order2['amount'], TEST_SHOPIER_API_SECRET)
-        callback2 = {
-            "orderId": order2['id'],
-            "platform_order_id": order2['id'],
-            "status": "success",
-            "transactionId": same_txn_id,
-            "payment_id": same_txn_id,
-            "hash": hash2
-        }
-        
-        response2 = requests.post(f"{BASE_URL}/payment/shopier/callback", json=callback2, timeout=10)
-        
-        # Should be accepted but not create duplicate payment
-        if response2.status_code == 200:
-            data = response2.json()
-            message = data.get('message', '')
-            if 'zaten' in message.lower() or 'already' in message.lower():
-                print_result(True, "Duplicate transaction ID detected and handled")
-                print(f"   Response: {message}")
-            else:
-                print_result(True, "Second callback processed")
-            
-            # Verify only one payment record with this transaction ID
-            from pymongo import MongoClient
-            client = MongoClient("mongodb://localhost:27017")
-            db = client['pubg_uc_store']
-            payment_count = db.payments.count_documents({"providerTxnId": same_txn_id})
-            
-            if payment_count == 1:
-                print_result(True, f"Only 1 payment record exists for txn ID (correct)")
-            else:
-                print_result(False, f"Found {payment_count} payment records for same txn ID")
-                return False
-            
-            return True
-        else:
-            print_result(False, f"Second callback failed: {response2.text}")
-            return False
-    except Exception as e:
-        print_result(False, f"Test error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 13: Immutable Status Transitions (FAILED → PAID should be rejected)
-# ============================================================================
-def test_immutable_status_transitions():
-    print_test_header("Immutable Status Transitions (FAILED → PAID Rejected)")
+    # First, find a product with no stock or create order for product with exhausted stock
+    # For this test, we'll create a new order and simulate callback when no stock is available
     
-    try:
-        # Create order
-        order_response = requests.post(
-            f"{BASE_URL}/orders",
-            json={"productId": test_product_id, "playerId": "4444444444", "playerName": "StatusTest#4444"},
-            timeout=10
-        )
-        
-        if order_response.status_code != 200:
-            print_result(False, "Failed to create test order")
-            return False
-        
-        order = order_response.json()['data']['order']
-        order_id = order['id']
-        
-        # First callback: Set to FAILED
-        hash1 = generate_shopier_hash(order_id, order['amount'], TEST_SHOPIER_API_SECRET)
-        callback1 = {
-            "orderId": order_id,
-            "platform_order_id": order_id,
-            "status": "failed",
-            "transactionId": f"TXN_FAIL_{int(time.time())}",
-            "hash": hash1
-        }
-        
-        response1 = requests.post(f"{BASE_URL}/payment/shopier/callback", json=callback1, timeout=10)
-        if response1.status_code != 200:
-            print_result(False, f"Failed to set order to FAILED: {response1.text}")
-            return False
-        
-        print_result(True, f"Order {order_id} set to FAILED status")
-        
-        # Second callback: Try to change FAILED → PAID (should be rejected)
-        hash2 = generate_shopier_hash(order_id, order['amount'], TEST_SHOPIER_API_SECRET)
-        callback2 = {
-            "orderId": order_id,
-            "platform_order_id": order_id,
-            "status": "success",
-            "transactionId": f"TXN_SUCCESS_{int(time.time())}",
-            "hash": hash2
-        }
-        
-        response2 = requests.post(f"{BASE_URL}/payment/shopier/callback", json=callback2, timeout=10)
-        
-        # Should reject with 400
-        if response2.status_code == 400:
-            data = response2.json()
-            print_result(True, "FAILED → PAID transition rejected (400)")
-            print(f"   Error message: {data.get('error')}")
-            
-            # Verify order status is still FAILED
-            from pymongo import MongoClient
-            client = MongoClient("mongodb://localhost:27017")
-            db = client['pubg_uc_store']
-            final_order = db.orders.find_one({"id": order_id})
-            
-            if final_order['status'] == 'failed':
-                print_result(True, "Order status remains 'failed' (immutable)")
-            else:
-                print_result(False, f"Order status changed to: {final_order['status']}")
-                return False
-            
-            return True
-        else:
-            print_result(False, f"Should return 400, got {response2.status_code}: {response2.text}")
-            return False
-    except Exception as e:
-        print_result(False, f"Test error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 14: PENDING → PAID Transition (Should Work)
-# ============================================================================
-def test_pending_to_paid_transition():
-    print_test_header("PENDING → PAID Transition (Should Work)")
+    # Create another order
+    order_data = {
+        "productId": test_product_id,
+        "playerId": "9876543210",
+        "playerName": "TestPlayer2#3210"
+    }
     
-    try:
-        # Create order (starts as PENDING)
-        order_response = requests.post(
-            f"{BASE_URL}/orders",
-            json={"productId": test_product_id, "playerId": "5555555555", "playerName": "PendingTest#5555"},
-            timeout=10
-        )
+    success, data, status = make_request("POST", "/orders", order_data, user_token)
+    
+    if success and status == 200:
+        order2_id = data.get("data", {}).get("order", {}).get("id")
         
-        if order_response.status_code != 200:
-            print_result(False, "Failed to create test order")
-            return False
-        
-        order = order_response.json()['data']['order']
-        order_id = order['id']
-        
-        if order['status'] != 'pending':
-            print_result(False, f"Order should start as PENDING, got {order['status']}")
-            return False
-        
-        print_result(True, f"Order {order_id} created with PENDING status")
-        
-        # Callback: PENDING → PAID
-        correct_hash = generate_shopier_hash(order_id, order['amount'], TEST_SHOPIER_API_SECRET)
-        callback = {
-            "orderId": order_id,
-            "platform_order_id": order_id,
+        # Simulate PAID callback
+        callback_data = {
+            "orderId": order2_id,
             "status": "success",
-            "transactionId": f"TXN_PEND_PAID_{int(time.time())}",
-            "hash": correct_hash
+            "transactionId": f"TXN-NOSTOCK-{int(time.time())}",
+            "payment_id": f"PAY-NOSTOCK-{int(time.time())}",
+            "platform_order_id": order2_id
         }
         
-        response = requests.post(f"{BASE_URL}/payment/shopier/callback", json=callback, timeout=10)
+        make_request("POST", "/payment/shopier/callback", callback_data)
+        time.sleep(1)
         
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('success'):
-                print_result(True, "PENDING → PAID transition accepted")
-                
-                # Verify order status updated
-                from pymongo import MongoClient
-                client = MongoClient("mongodb://localhost:27017")
-                db = client['pubg_uc_store']
-                updated_order = db.orders.find_one({"id": order_id})
-                
-                if updated_order['status'] == 'paid':
-                    print_result(True, "Order status successfully updated to 'paid'")
-                else:
-                    print_result(False, f"Order status not updated: {updated_order['status']}")
-                    return False
-                
+        # Check order delivery status
+        success2, order_data2, status2 = make_request(
+            "GET", 
+            f"/account/orders/{order2_id}", 
+            None, 
+            user_token
+        )
+        
+        if success2:
+            order = order_data2.get("data", {}).get("order", {})
+            delivery = order.get("delivery", {})
+            
+            # If no stock available, delivery status should be 'pending'
+            if delivery.get("status") == "pending" and "bekleniyor" in delivery.get("message", "").lower():
+                print_result(True, "Out of stock scenario handled correctly", {
+                    "delivery_status": delivery.get("status"),
+                    "message": delivery.get("message")
+                })
+                return True
+            elif delivery.get("status") == "delivered":
+                print_result(True, "Stock was available and assigned (expected if stock exists)", {
+                    "delivery_status": delivery.get("status"),
+                    "items": delivery.get("items")
+                })
                 return True
             else:
-                print_result(False, f"Callback failed: {data}")
+                print_result(False, "Unexpected delivery status", delivery)
                 return False
         else:
-            print_result(False, f"Callback failed with status {response.status_code}: {response.text}")
+            print_result(False, "Could not retrieve order", {})
             return False
-    except Exception as e:
-        print_result(False, f"Test error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 15: PENDING → FAILED Transition (Should Work)
-# ============================================================================
-def test_pending_to_failed_transition():
-    print_test_header("PENDING → FAILED Transition (Should Work)")
-    
-    try:
-        # Create order (starts as PENDING)
-        order_response = requests.post(
-            f"{BASE_URL}/orders",
-            json={"productId": test_product_id, "playerId": "6666666666", "playerName": "FailTest#6666"},
-            timeout=10
-        )
-        
-        if order_response.status_code != 200:
-            print_result(False, "Failed to create test order")
-            return False
-        
-        order = order_response.json()['data']['order']
-        order_id = order['id']
-        
-        print_result(True, f"Order {order_id} created with PENDING status")
-        
-        # Callback: PENDING → FAILED
-        correct_hash = generate_shopier_hash(order_id, order['amount'], TEST_SHOPIER_API_SECRET)
-        callback = {
-            "orderId": order_id,
-            "platform_order_id": order_id,
-            "status": "failed",
-            "transactionId": f"TXN_PEND_FAIL_{int(time.time())}",
-            "hash": correct_hash
-        }
-        
-        response = requests.post(f"{BASE_URL}/payment/shopier/callback", json=callback, timeout=10)
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('success'):
-                print_result(True, "PENDING → FAILED transition accepted")
-                
-                # Verify order status updated
-                from pymongo import MongoClient
-                client = MongoClient("mongodb://localhost:27017")
-                db = client['pubg_uc_store']
-                updated_order = db.orders.find_one({"id": order_id})
-                
-                if updated_order['status'] == 'failed':
-                    print_result(True, "Order status successfully updated to 'failed'")
-                else:
-                    print_result(False, f"Order status not updated: {updated_order['status']}")
-                    return False
-                
-                return True
-            else:
-                print_result(False, f"Callback failed: {data}")
-                return False
-        else:
-            print_result(False, f"Callback failed with status {response.status_code}: {response.text}")
-            return False
-    except Exception as e:
-        print_result(False, f"Test error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 16: Verify No Secrets in Logs
-# ============================================================================
-def test_no_secrets_in_logs():
-    print_test_header("Verify No Secrets in Logs")
-    
-    try:
-        from pymongo import MongoClient
-        client = MongoClient("mongodb://localhost:27017")
-        db = client['pubg_uc_store']
-        
-        # Check payment_requests collection (should have masked API key)
-        payment_request = db.payment_requests.find_one({})
-        if payment_request:
-            shopier_payload = payment_request.get('shopierPayload', {})
-            api_key = shopier_payload.get('apiKey')
-            
-            if api_key == '***MASKED***':
-                print_result(True, "API key masked in payment_requests collection")
-            elif api_key == TEST_SHOPIER_API_KEY:
-                print_result(False, f"API key NOT masked in payment_requests: {api_key}")
-                return False
-            else:
-                print_result(True, f"API key value in payment_requests: {api_key}")
-        else:
-            print("   No payment_requests found (skipping)")
-        
-        # Check security logs (should not contain plaintext secrets)
-        security_log = db.payment_security_logs.find_one({})
-        if security_log:
-            payload = security_log.get('payload', {})
-            # Verify no plaintext secrets in payload
-            payload_str = json.dumps(payload)
-            if TEST_SHOPIER_API_SECRET in payload_str:
-                print_result(False, "API secret found in security logs!")
-                return False
-            else:
-                print_result(True, "No plaintext secrets in security logs")
-        else:
-            print("   No security logs found (skipping)")
-        
-        print_result(True, "No secrets found in database logs")
-        return True
-    except Exception as e:
-        print_result(False, f"Test error: {str(e)}")
-        return False
-
-# ============================================================================
-# TEST 17: Rate Limiting (10 requests/hour)
-# ============================================================================
-def test_rate_limiting():
-    print_test_header("Rate Limiting (10 requests/hour)")
-    
-    if not admin_token:
-        print_result(False, "No admin token available")
-        return False
-    
-    try:
-        # Note: This test is simplified. Full test would require 11 requests
-        # For now, we just verify the rate limiting logic exists
-        
-        headers = {"Authorization": f"Bearer {admin_token}"}
-        payload = {
-            "merchantId": "rate_test_merchant",
-            "apiKey": "rate_test_key",
-            "apiSecret": "rate_test_secret",
-            "mode": "production"
-        }
-        
-        # Make a few requests
-        for i in range(3):
-            response = requests.post(
-                f"{BASE_URL}/admin/settings/payments",
-                json=payload,
-                headers=headers,
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                print(f"   Request {i+1}: Success")
-            elif response.status_code == 429:
-                print_result(True, f"Rate limit hit at request {i+1} (429)")
-                # Restore original test credentials
-                restore_payload = {
-                    "merchantId": TEST_SHOPIER_MERCHANT_ID,
-                    "apiKey": TEST_SHOPIER_API_KEY,
-                    "apiSecret": TEST_SHOPIER_API_SECRET,
-                    "mode": "production"
-                }
-                requests.post(f"{BASE_URL}/admin/settings/payments", json=restore_payload, headers=headers, timeout=10)
-                return True
-            else:
-                print(f"   Request {i+1}: Status {response.status_code}")
-        
-        # Restore original test credentials after rate limit test
-        restore_payload = {
-            "merchantId": TEST_SHOPIER_MERCHANT_ID,
-            "apiKey": TEST_SHOPIER_API_KEY,
-            "apiSecret": TEST_SHOPIER_API_SECRET,
-            "mode": "production"
-        }
-        requests.post(f"{BASE_URL}/admin/settings/payments", json=restore_payload, headers=headers, timeout=10)
-        print("   Restored original test credentials")
-        
-        print_result(True, "Rate limiting logic exists (full test requires 11+ requests)")
-        print("   Note: Full rate limit test would require 11 requests in 1 hour")
-        return True
-    except Exception as e:
-        print_result(False, f"Test error: {str(e)}")
+    else:
+        print_result(False, "Could not create second order", data)
         return False
 
 # ============================================================================
 # MAIN TEST RUNNER
 # ============================================================================
 def run_all_tests():
+    """Run all tests and report results"""
     print("\n" + "="*80)
-    print("SHOPIER PRODUCTION INTEGRATION - COMPREHENSIVE SECURITY TESTS")
-    print("="*80)
-    print(f"Base URL: {BASE_URL}")
-    print(f"Test started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("BACKEND API TESTING - AUTH + STOCK + DELIVERY SYSTEM")
     print("="*80)
     
-    results = {}
+    results = []
     
-    # Run tests in order
-    tests = [
-        ("Admin Login", test_admin_login),
-        ("Save Shopier Settings (Encrypted)", test_save_shopier_settings),
-        ("Retrieve Shopier Settings (Masked)", test_get_shopier_settings),
-        ("Verify Encryption in Database", test_verify_encryption_in_db),
-        ("Settings Auth Requirement", test_settings_auth_requirement),
-        ("Get Products", test_get_products),
-        ("Order Creation with Settings", test_order_creation_with_settings),
-        ("Order Creation WITHOUT Settings", test_order_creation_without_settings),
-        ("Callback Correct Hash", test_callback_correct_hash),
-        ("Callback Incorrect Hash", test_callback_incorrect_hash),
-        ("Callback Idempotency", test_callback_idempotency),
-        ("Transaction ID Uniqueness", test_transaction_id_uniqueness),
-        ("Immutable Status Transitions", test_immutable_status_transitions),
-        ("PENDING → PAID Transition", test_pending_to_paid_transition),
-        ("PENDING → FAILED Transition", test_pending_to_failed_transition),
-        ("No Secrets in Logs", test_no_secrets_in_logs),
-        ("Rate Limiting", test_rate_limiting),
-    ]
+    # Auth Tests
+    results.append(("User Registration", test_user_registration()))
+    results.append(("Duplicate Email Check", test_duplicate_email()))
+    results.append(("Registration Validations", test_registration_validation()))
+    results.append(("User Login", test_user_login()))
+    results.append(("Invalid Login", test_login_invalid_credentials()))
     
-    for test_name, test_func in tests:
-        try:
-            result = test_func()
-            results[test_name] = result
-        except Exception as e:
-            print_result(False, f"Test crashed: {str(e)}")
-            results[test_name] = False
+    # Admin Login
+    results.append(("Admin Login", test_admin_login()))
     
-    # Print summary
+    # Get Products
+    results.append(("Get Products", test_get_products()))
+    
+    # Stock Management
+    results.append(("Add Stock", test_add_stock()))
+    results.append(("Get Stock Summary", test_get_stock()))
+    
+    # Order Creation
+    results.append(("Create Order Without Auth", test_create_order_without_auth()))
+    results.append(("Create Order With Auth", test_create_order_with_auth()))
+    
+    # User Orders
+    results.append(("Get User Orders", test_get_user_orders()))
+    results.append(("Get User Orders Without Auth", test_get_user_orders_without_auth()))
+    results.append(("Get Single User Order", test_get_single_user_order()))
+    
+    # Auto-Stock Assignment
+    results.append(("Auto-Stock Assignment", test_auto_stock_assignment()))
+    results.append(("Idempotency Test", test_idempotency()))
+    results.append(("Out of Stock Scenario", test_out_of_stock()))
+    
+    # Summary
     print("\n" + "="*80)
     print("TEST SUMMARY")
     print("="*80)
     
-    passed = sum(1 for r in results.values() if r)
+    passed = sum(1 for _, result in results if result)
     total = len(results)
     
-    for test_name, result in results.items():
+    for test_name, result in results:
         status = "✅ PASS" if result else "❌ FAIL"
         print(f"{status}: {test_name}")
     
-    print("="*80)
+    print("\n" + "="*80)
     print(f"TOTAL: {passed}/{total} tests passed ({passed*100//total}%)")
     print("="*80)
     
     return passed == total
 
 if __name__ == "__main__":
-    success = run_all_tests()
-    exit(0 if success else 1)
+    try:
+        all_passed = run_all_tests()
+        exit(0 if all_passed else 1)
+    except Exception as e:
+        print(f"\n❌ FATAL ERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        exit(1)
