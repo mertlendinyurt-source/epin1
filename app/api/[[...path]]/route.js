@@ -487,6 +487,70 @@ export async function POST(request) {
       });
     }
 
+    // Admin: Save Shopier payment settings (encrypted)
+    if (pathname === '/api/admin/settings/payments') {
+      const user = verifyToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const { merchantId, apiKey, apiSecret, mode } = body;
+
+      // Validate required fields
+      if (!merchantId || !apiKey || !apiSecret) {
+        return NextResponse.json(
+          { success: false, error: 'Tüm alanlar gereklidir' },
+          { status: 400 }
+        );
+      }
+
+      // Rate limiting check (simple implementation - 10 requests per hour)
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const recentUpdates = await db.collection('shopier_settings')
+        .countDocuments({ updatedAt: { $gte: oneHourAgo } });
+      
+      if (recentUpdates >= 10) {
+        return NextResponse.json(
+          { success: false, error: 'Çok fazla istek. Lütfen daha sonra tekrar deneyin.' },
+          { status: 429 }
+        );
+      }
+
+      // Encrypt sensitive data before storing
+      const encryptedSettings = {
+        merchantId: encrypt(merchantId),
+        apiKey: encrypt(apiKey),
+        apiSecret: encrypt(apiSecret),
+        mode: mode || 'production',
+        isActive: true,
+        updatedBy: user.username,
+        updatedAt: new Date(),
+        createdAt: new Date()
+      };
+
+      // Deactivate all previous settings
+      await db.collection('shopier_settings').updateMany(
+        {},
+        { $set: { isActive: false } }
+      );
+
+      // Insert new settings
+      await db.collection('shopier_settings').insertOne(encryptedSettings);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Shopier ayarları başarıyla kaydedildi',
+        data: {
+          mode: encryptedSettings.mode,
+          updatedBy: encryptedSettings.updatedBy,
+          updatedAt: encryptedSettings.updatedAt
+        }
+      });
+    }
+
     return NextResponse.json(
       { success: false, error: 'Endpoint bulunamadı' },
       { status: 404 }
