@@ -151,7 +151,7 @@ export async function GET(request) {
       return NextResponse.json({ success: true, data: products });
     }
 
-    // Resolve player name (mock)
+    // Resolve player name (Real PUBG API via RapidAPI)
     if (pathname === '/api/player/resolve') {
       const playerId = searchParams.get('id');
       if (!playerId || playerId.length < 6) {
@@ -161,16 +161,69 @@ export async function GET(request) {
         );
       }
       
-      // Simulate delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      return NextResponse.json({
-        success: true,
-        data: {
-          playerId,
-          playerName: getMockPlayerName(playerId)
+      try {
+        const rapidApiKey = process.env.RAPIDAPI_KEY;
+        
+        if (!rapidApiKey) {
+          console.error('RAPIDAPI_KEY not configured');
+          // Fallback to mock if API key not available
+          return NextResponse.json({
+            success: true,
+            data: {
+              playerId,
+              playerName: getMockPlayerName(playerId)
+            }
+          });
         }
-      });
+
+        // Call PUBG Mobile API via RapidAPI
+        const response = await fetch(
+          `https://pubg-mobile1.p.rapidapi.com/player/${playerId}`,
+          {
+            method: 'GET',
+            headers: {
+              'X-RapidAPI-Key': rapidApiKey,
+              'X-RapidAPI-Host': 'pubg-mobile1.p.rapidapi.com'
+            },
+            signal: AbortSignal.timeout(5000) // 5 second timeout
+          }
+        );
+
+        if (!response.ok) {
+          console.error(`PUBG API error: ${response.status}`);
+          // If API fails, use fallback
+          return NextResponse.json({
+            success: true,
+            data: {
+              playerId,
+              playerName: `Player#${playerId.slice(-4)}`
+            }
+          });
+        }
+
+        const data = await response.json();
+        
+        // Extract player name from API response
+        const playerName = data?.name || data?.playerName || data?.username || `Player#${playerId.slice(-4)}`;
+        
+        return NextResponse.json({
+          success: true,
+          data: {
+            playerId,
+            playerName
+          }
+        });
+      } catch (error) {
+        console.error('Player resolve error:', error.message);
+        // Fallback to generic name on error
+        return NextResponse.json({
+          success: true,
+          data: {
+            playerId,
+            playerName: `Player#${playerId.slice(-4)}`
+          }
+        });
+      }
     }
 
     // Admin: Get all orders
