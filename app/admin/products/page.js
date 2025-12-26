@@ -490,6 +490,90 @@ export default function AdminProducts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Stock Management Dialog */}
+      <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Stok Yönetimi</DialogTitle>
+            <DialogDescription className="text-slate-400">
+              {selectedProductForStock?.title} - Stok durumu ve yeni stok ekleme
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Stock Summary */}
+          {stockData.summary && (
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <div className="text-2xl font-bold text-white mb-1">
+                  {stockData.summary.total}
+                </div>
+                <div className="text-sm text-slate-400">Toplam</div>
+              </div>
+              <div className="bg-green-900/20 rounded-lg p-4 border border-green-700/50">
+                <div className="text-2xl font-bold text-green-400 mb-1">
+                  {stockData.summary.available}
+                </div>
+                <div className="text-sm text-green-300">Mevcut</div>
+              </div>
+              <div className="bg-blue-900/20 rounded-lg p-4 border border-blue-700/50">
+                <div className="text-2xl font-bold text-blue-400 mb-1">
+                  {stockData.summary.assigned}
+                </div>
+                <div className="text-sm text-blue-300">Atanmış</div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Stock Section */}
+          <div className="space-y-4">
+            <div>
+              <Label className="text-slate-300 mb-2 block">
+                Stok Ekle (Her satıra bir kod/item)
+              </Label>
+              <textarea
+                value={stockData.items}
+                onChange={(e) => setStockData({ ...stockData, items: e.target.value })}
+                placeholder="Örnek:&#10;ABCD-1234-EFGH-5678&#10;IJKL-9012-MNOP-3456&#10;QRST-7890-UVWX-1234"
+                className="w-full h-40 px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 font-mono text-sm resize-none"
+              />
+              <div className="text-xs text-slate-400 mt-2">
+                {stockData.items.split('\n').filter(l => l.trim()).length} satır girildi
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                onClick={() => setStockDialogOpen(false)}
+                variant="outline"
+                className="border-slate-700 text-white"
+              >
+                İptal
+              </Button>
+              <Button
+                onClick={handleAddStock}
+                disabled={stockLoading || !stockData.items.trim()}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {stockLoading ? 'Ekleniyor...' : 'Toplu Ekle'}
+              </Button>
+            </DialogFooter>
+          </div>
+
+          {/* Stock Information */}
+          <div className="mt-4 p-4 bg-blue-900/20 rounded-lg border border-blue-700/50">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="text-sm text-blue-200">
+                <p className="font-semibold mb-1">Otomatik Teslimat:</p>
+                <p>Eklenen stoklar, ödeme onaylandığında (PAID) otomatik olarak siparişlere atanır. FIFO (ilk giren ilk çıkar) prensibiyle çalışır.</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
