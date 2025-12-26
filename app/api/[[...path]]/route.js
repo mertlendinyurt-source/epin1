@@ -962,7 +962,7 @@ export async function POST(request) {
         if (!currentOrder.delivery || !currentOrder.delivery.items || currentOrder.delivery.items.length === 0) {
           try {
             // Find available stock for this product (atomic operation)
-            const availableStock = await db.collection('stock').findOneAndUpdate(
+            const result = await db.collection('stock').findOneAndUpdate(
               { 
                 productId: order.productId, 
                 status: 'available' 
@@ -980,9 +980,9 @@ export async function POST(request) {
               }
             );
 
-            if (availableStock) {
-              // Stock found and assigned - update order with delivery info
-              const stockCode = availableStock.value || (availableStock._id ? 'STOCK_ASSIGNED' : null);
+            if (result && result.value) {
+              // Stock found and assigned - extract the code
+              const stockCode = result.value.value;
               
               await db.collection('orders').updateOne(
                 { id: order.id },
@@ -991,7 +991,7 @@ export async function POST(request) {
                     delivery: {
                       status: 'delivered',
                       items: [stockCode],
-                      stockId: availableStock._id,
+                      stockId: result.value.id,
                       assignedAt: new Date()
                     }
                   }
