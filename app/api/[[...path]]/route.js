@@ -282,6 +282,46 @@ export async function GET(request) {
       });
     }
 
+    // Admin: Get Shopier payment settings (masked)
+    if (pathname === '/api/admin/settings/payments') {
+      const user = verifyToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      // Get encrypted settings from database
+      const settings = await db.collection('shopier_settings').findOne({ isActive: true });
+      
+      if (!settings) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            isConfigured: false,
+            merchantId: null,
+            apiKey: null,
+            mode: 'production',
+            message: 'Shopier ayarları henüz yapılmadı'
+          }
+        });
+      }
+
+      // Return masked values (never send encrypted or decrypted sensitive data to frontend)
+      return NextResponse.json({
+        success: true,
+        data: {
+          isConfigured: true,
+          merchantId: settings.merchantId ? maskSensitiveData(decrypt(settings.merchantId)) : null,
+          apiKey: settings.apiKey ? maskSensitiveData(decrypt(settings.apiKey)) : null,
+          mode: settings.mode || 'production',
+          updatedBy: settings.updatedBy,
+          updatedAt: settings.updatedAt
+        }
+      });
+    }
+
     return NextResponse.json(
       { success: false, error: 'Endpoint bulunamadı' },
       { status: 404 }
