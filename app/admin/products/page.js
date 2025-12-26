@@ -19,7 +19,11 @@ export default function AdminProducts() {
   const [loading, setLoading] = useState(true)
   const [products, setProducts] = useState([])
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [stockDialogOpen, setStockDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+  const [selectedProductForStock, setSelectedProductForStock] = useState(null)
+  const [stockData, setStockData] = useState({ items: '', summary: null })
+  const [stockLoading, setStockLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     ucAmount: '',
