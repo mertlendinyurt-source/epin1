@@ -10,7 +10,7 @@ import time
 from typing import Dict, Any, Optional
 
 # Base URL from environment
-BASE_URL = "https://gamepoints-4.preview.emergentagent.com/api"
+BASE_URL = "https://payment-gateway-238.preview.emergentagent.com/api"
 
 class Colors:
     GREEN = '\033[92m'
