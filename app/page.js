@@ -606,46 +606,47 @@ export default function App() {
               </div>
             )}
 
-          {/* Title */}
-          <div className="px-6 py-5 border-b border-white/5">
-            <h2 className="text-lg font-bold text-white">Oyuncu ID</h2>
-          </div>
-
-          {/* Content */}
-          <div className="p-6 space-y-5">
-            <div>
-              <Label className="text-sm text-white/70 mb-2 block">Oyuncu ID'nizi girin</Label>
-              <Input
-                placeholder="Oyuncu ID"
-                value={playerId}
-                onChange={(e) => {
-                  setPlayerId(e.target.value)
-                  setPlayerIdError('')
-                }}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handlePlayerIdConfirm()
-                  }
-                }}
-                className="h-12 px-4 text-sm bg-[#12161D] text-white placeholder:text-white/40 border border-white/10 focus:border-blue-500 rounded"
-                autoFocus
-              />
+            {/* Title */}
+            <div className="px-6 py-5 border-b border-white/5">
+              <h2 className="text-lg font-bold text-white">Oyuncu ID</h2>
             </div>
 
-            <Button
-              onClick={handlePlayerIdConfirm}
-              disabled={playerLoading}
-              className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base uppercase tracking-wide rounded-lg"
-            >
-              {playerLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Doğrulanıyor...
-                </>
-              ) : (
-                'Onayla'
-              )}
-            </Button>
+            {/* Content */}
+            <div className="p-6 space-y-5">
+              <div>
+                <Label className="text-sm text-white/70 mb-2 block">Oyuncu ID'nizi girin</Label>
+                <Input
+                  placeholder="Oyuncu ID"
+                  value={playerId}
+                  onChange={(e) => {
+                    setPlayerId(e.target.value)
+                    setPlayerIdError('')
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handlePlayerIdConfirm()
+                    }
+                  }}
+                  className="h-12 px-4 text-sm bg-[#12161D] text-white placeholder:text-white/40 border border-white/10 focus:border-blue-500 rounded"
+                  autoFocus
+                />
+              </div>
+
+              <Button
+                onClick={handlePlayerIdConfirm}
+                disabled={playerLoading}
+                className="w-full h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold text-base uppercase tracking-wide rounded-lg"
+              >
+                {playerLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Doğrulanıyor...
+                  </>
+                ) : (
+                  'Onayla'
+                )}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
