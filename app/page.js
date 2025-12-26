@@ -427,45 +427,48 @@ export default function App() {
                 <div>
                   <div className="flex items-center justify-between mb-3">
                     <Label className="text-sm md:text-base text-white/80 uppercase">Oyuncu ID</Label>
-                    <button 
-                      onClick={() => document.getElementById('playerId')?.focus()}
-                      className="text-xs md:text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                    >
-                      Oyuncu ID Girin
-                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
-                        <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
-                      </svg>
-                    </button>
+                    {!playerValid && (
+                      <button 
+                        onClick={() => setPlayerIdModalOpen(true)}
+                        className="text-xs md:text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                      >
+                        Oyuncu ID Girin
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+                          <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
+                        </svg>
+                      </button>
+                    )}
                   </div>
                   
-                  {/* Player ID Input */}
-                  <div className="relative">
-                    <Input
-                      id="playerId"
-                      placeholder="Oyuncu ID'nizi girin"
-                      value={playerId}
-                      onChange={(e) => setPlayerId(e.target.value)}
-                      className="h-11 md:h-12 px-4 text-sm bg-[#12161D] text-white placeholder:text-white/40 border border-white/10 focus:border-blue-500 rounded"
-                    />
-                    {playerLoading && (
-                      <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />
-                    )}
-                    {!playerLoading && playerValid === true && (
-                      <Check className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
-                    )}
-                    {!playerLoading && playerValid === false && playerId.length >= 6 && (
-                      <X className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-red-500" />
-                    )}
-                  </div>
-
-                  {playerName && (
-                    <div className="mt-3 px-4 py-3 rounded bg-green-500/15 border border-green-500/30">
-                      <div className="flex items-center gap-2 text-green-400 mb-1 text-xs font-semibold">
-                        <Check className="w-4 h-4" />
-                        <span>Oyuncu Bulundu</span>
+                  {/* Show validated player info OR input */}
+                  {playerValid && playerName ? (
+                    <div className="px-4 py-3.5 rounded bg-green-500/15 border border-green-500/30 flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 text-green-400 mb-1 text-xs font-semibold">
+                          <Check className="w-4 h-4" />
+                          <span>Oyuncu Bulundu</span>
+                        </div>
+                        <p className="text-white text-base font-bold">{playerName}</p>
+                        <p className="text-white/50 text-xs mt-0.5">ID: {playerId}</p>
                       </div>
-                      <p className="text-white text-sm font-bold">{playerName}</p>
+                      <button
+                        onClick={() => {
+                          setPlayerValid(null)
+                          setPlayerName('')
+                          setPlayerId('')
+                        }}
+                        className="text-white/60 hover:text-white text-xs"
+                      >
+                        Değiştir
+                      </button>
+                    </div>
+                  ) : (
+                    <div 
+                      onClick={() => setPlayerIdModalOpen(true)}
+                      className="px-4 py-3 rounded bg-[#12161D] border border-white/10 text-white/40 cursor-pointer hover:border-white/20 transition-colors"
+                    >
+                      <span className="text-sm">Oyuncu ID'nizi girin</span>
                     </div>
                   )}
                 </div>
