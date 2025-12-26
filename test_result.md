@@ -285,6 +285,138 @@ backend:
         agent: "testing"
         comment: "Comprehensive validation working correctly. Returns 400 for missing/invalid fields, 401 for unauthorized access, 404 for not found resources. All error scenarios tested and working as expected."
 
+  - task: "Admin Shopier Settings - Save Encrypted Credentials"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js, lib/crypto.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "POST /api/admin/settings/payments working correctly. Saves Shopier credentials (merchantId, apiKey, apiSecret) with AES-256-GCM encryption. Requires JWT authentication. Rate limiting implemented (10 requests/hour). Verified encryption in database - all sensitive fields stored as encrypted base64 strings, not plaintext. Encryption/decryption cycle working correctly."
+
+  - task: "Admin Shopier Settings - Retrieve Masked Credentials"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js, lib/crypto.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "GET /api/admin/settings/payments working correctly. Returns masked credentials (shows first 4 and last 4 chars with asterisks in middle). API secret is NEVER returned to frontend (security best practice). Requires JWT authentication. Decryption working correctly on backend."
+
+  - task: "Order Creation with Production Shopier Integration"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "POST /api/orders enhanced with production Shopier integration. Reads encrypted settings from database, decrypts credentials, generates payment URL with Shopier API. Backend-controlled pricing (frontend price NOT trusted). Fails gracefully with 503 error if Shopier settings not configured. Payment URL generation working correctly. Creates audit trail in payment_requests collection with masked API keys."
+
+  - task: "Callback Handler - Hash Validation"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js, lib/crypto.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "POST /api/payment/shopier/callback enhanced with production security. Hash validation working correctly - accepts callbacks with correct SHA256 hash (orderId+amount+secret), rejects incorrect hashes with 403 status. Security logs created on hash mismatch for audit trail. Hash generation using decrypted API secret from database."
+
+  - task: "Callback Handler - Idempotency Protection"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Callback idempotency working correctly. Duplicate callbacks for already PAID orders are ignored with success response ('Ödeme zaten işlenmiş'). Order status remains unchanged. Prevents double-processing of payments."
+
+  - task: "Callback Handler - Transaction ID Uniqueness"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Transaction ID uniqueness check working correctly. When duplicate transaction IDs are received, system detects existing payment record and returns success without creating duplicate ('İşlem zaten kaydedilmiş'). Only one payment record exists per transaction ID. Prevents double-payment scenarios."
+
+  - task: "Callback Handler - Immutable Status Transitions"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Immutable status transitions working correctly. FAILED → PAID transition is rejected with 400 error ('Geçersiz durum geçişi'). Order status remains FAILED. PENDING → PAID and PENDING → FAILED transitions work correctly. Prevents fraudulent status manipulation."
+
+  - task: "Callback Handler - Status Transitions"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Valid status transitions working correctly. PENDING → PAID: order status updated, payment record created. PENDING → FAILED: order status updated correctly. All transitions create proper payment records with full audit trail (hashValidated, rawPayload, verifiedAt timestamps)."
+
+  - task: "Data Security - No Secrets in Logs"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Data security verified. API keys masked in payment_requests collection ('***MASKED***'). No plaintext secrets found in security logs. Encryption working correctly in database - all sensitive fields stored as encrypted base64 strings. No API secrets leaked in any logs or database collections."
+
+  - task: "Rate Limiting for Settings Updates"
+    implemented: true
+    working: true
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Rate limiting working correctly. POST /api/admin/settings/payments limited to 10 requests per hour. Returns 429 status ('Çok fazla istek') when limit exceeded. Prevents abuse of settings update endpoint."
+
+  - task: "Encryption/Decryption System"
+    implemented: true
+    working: true
+    file: "lib/crypto.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "AES-256-GCM encryption/decryption working correctly. Master key derived from MASTER_ENCRYPTION_KEY environment variable using SHA256. Encryption produces base64-encoded strings with IV, encrypted data, and auth tag. Decryption successfully recovers original plaintext. Masking function working correctly (shows first 4 and last 4 chars). Hash generation for Shopier callbacks working correctly (SHA256)."
+
 frontend:
   - task: "Frontend UI"
     implemented: true
