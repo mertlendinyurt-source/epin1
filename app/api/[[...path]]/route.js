@@ -689,19 +689,19 @@ export async function POST(request) {
       // Generate random string for Shopier request
       const randomNr = uuidv4().replace(/-/g, '').substring(0, 16);
 
-      // Prepare Shopier payment request
+      // Prepare Shopier payment request with REAL customer data
       const shopierPayload = {
         random_nr: randomNr,
         platform_order_id: order.id,
         product_name: `${product.title} - PUBG Mobile UC`,
         product_type: '1', // Digital product
-        buyer_name: playerName.split('#')[0] || 'Player',
-        buyer_surname: playerName.split('#')[1] || playerId.substring(0, 4),
-        buyer_email: `player_${playerId}@pubg.temp`, // Mock email for PUBG IDs
-        buyer_phone: '5000000000', // Mock phone
+        buyer_name: customerSnapshot.firstName,
+        buyer_surname: customerSnapshot.lastName,
+        buyer_email: customerSnapshot.email,
+        buyer_phone: customerSnapshot.phone,
         buyer_account_age: '0',
         buyer_id_nr: playerId,
-        buyer_address: 'Turkey',
+        buyer_address: 'Turkey', // Can be added to user profile later if needed
         buyer_city: 'Istanbul',
         buyer_country: 'Turkey',
         buyer_postcode: '34000',
