@@ -980,9 +980,27 @@ def test_rate_limiting():
                 print(f"   Request {i+1}: Success")
             elif response.status_code == 429:
                 print_result(True, f"Rate limit hit at request {i+1} (429)")
+                # Restore original test credentials
+                restore_payload = {
+                    "merchantId": TEST_SHOPIER_MERCHANT_ID,
+                    "apiKey": TEST_SHOPIER_API_KEY,
+                    "apiSecret": TEST_SHOPIER_API_SECRET,
+                    "mode": "production"
+                }
+                requests.post(f"{BASE_URL}/admin/settings/payments", json=restore_payload, headers=headers, timeout=10)
                 return True
             else:
                 print(f"   Request {i+1}: Status {response.status_code}")
+        
+        # Restore original test credentials after rate limit test
+        restore_payload = {
+            "merchantId": TEST_SHOPIER_MERCHANT_ID,
+            "apiKey": TEST_SHOPIER_API_KEY,
+            "apiSecret": TEST_SHOPIER_API_SECRET,
+            "mode": "production"
+        }
+        requests.post(f"{BASE_URL}/admin/settings/payments", json=restore_payload, headers=headers, timeout=10)
+        print("   Restored original test credentials")
         
         print_result(True, "Rate limiting logic exists (full test requires 11+ requests)")
         print("   Note: Full rate limit test would require 11 requests in 1 hour")
