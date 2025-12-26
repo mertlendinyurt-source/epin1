@@ -1051,6 +1051,57 @@ export async function POST(request) {
       });
     }
 
+    // Admin: Add stock to product (bulk)
+    if (pathname.match(/^\/api\/admin\/products\/[^\/]+\/stock$/)) {
+      const user = verifyToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const productId = pathname.split('/')[4];
+      const { items } = body; // Array of strings (codes/items)
+
+      if (!items || !Array.isArray(items) || items.length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Stok item\'ları gereklidir' },
+          { status: 400 }
+        );
+      }
+
+      // Validate product exists
+      const product = await db.collection('products').findOne({ id: productId });
+      if (!product) {
+        return NextResponse.json(
+          { success: false, error: 'Ürün bulunamadı' },
+          { status: 404 }
+        );
+      }
+
+      // Create stock items
+      const stockItems = items.map(item => ({
+        id: uuidv4(),
+        productId,
+        value: item.trim(),
+        status: 'available',
+        orderId: null,
+        createdAt: new Date(),
+        createdBy: user.username
+      }));
+
+      await db.collection('stock').insertMany(stockItems);
+
+      return NextResponse.json({
+        success: true,
+        message: `${stockItems.length} adet stok eklendi`,
+        data: {
+          count: stockItems.length
+        }
+      });
+    }
+
     return NextResponse.json(
       { success: false, error: 'Endpoint bulunamadı' },
       { status: 404 }
