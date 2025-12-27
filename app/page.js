@@ -26,12 +26,26 @@ export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [siteSettings, setSiteSettings] = useState(null)
+  const [regions, setRegions] = useState([])
 
   useEffect(() => {
     fetchProducts()
     checkAuth()
     fetchSiteSettings()
+    fetchRegions()
   }, [])
+
+  const fetchRegions = async () => {
+    try {
+      const response = await fetch('/api/regions')
+      const data = await response.json()
+      if (data.success) {
+        setRegions(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching regions:', error)
+    }
+  }
 
   const fetchSiteSettings = async () => {
     try {
