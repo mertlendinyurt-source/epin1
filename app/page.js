@@ -28,13 +28,61 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [siteSettings, setSiteSettings] = useState(null)
   const [regions, setRegions] = useState([])
+  const [activeInfoTab, setActiveInfoTab] = useState('description')
+  const [gameContent, setGameContent] = useState(null)
+  const [reviews, setReviews] = useState([])
+  const [reviewStats, setReviewStats] = useState({ avgRating: 5.0, reviewCount: 0 })
+  const [reviewsPage, setReviewsPage] = useState(1)
+  const [reviewsHasMore, setReviewsHasMore] = useState(false)
+  const [loadingReviews, setLoadingReviews] = useState(false)
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false)
 
   useEffect(() => {
     fetchProducts()
     checkAuth()
     fetchSiteSettings()
     fetchRegions()
+    fetchGameContent()
+    fetchReviews(1)
   }, [])
+
+  const fetchGameContent = async () => {
+    try {
+      const response = await fetch('/api/content/pubg')
+      const data = await response.json()
+      if (data.success) {
+        setGameContent(data.data)
+      }
+    } catch (error) {
+      console.error('Error fetching game content:', error)
+    }
+  }
+
+  const fetchReviews = async (page = 1, append = false) => {
+    setLoadingReviews(true)
+    try {
+      const response = await fetch(`/api/reviews?game=pubg&page=${page}&limit=5`)
+      const data = await response.json()
+      if (data.success) {
+        if (append) {
+          setReviews(prev => [...prev, ...data.data.reviews])
+        } else {
+          setReviews(data.data.reviews)
+        }
+        setReviewStats(data.data.stats)
+        setReviewsHasMore(data.data.pagination.hasMore)
+        setReviewsPage(page)
+      }
+    } catch (error) {
+      console.error('Error fetching reviews:', error)
+    } finally {
+      setLoadingReviews(false)
+    }
+  }
+
+  const loadMoreReviews = () => {
+    fetchReviews(reviewsPage + 1, true)
+  }
 
   const fetchRegions = async () => {
     try {
