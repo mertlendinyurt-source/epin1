@@ -807,9 +807,35 @@ export async function GET(request) {
     await initializeDb();
     const db = await getDb();
 
+    // Healthcheck endpoint
+    if (pathname === '/api/health') {
+      return NextResponse.json({ 
+        ok: true, 
+        version: APP_VERSION, 
+        time: new Date().toISOString(),
+        uptime: process.uptime()
+      });
+    }
+
     // Root endpoint
     if (pathname === '/api' || pathname === '/api/') {
-      return NextResponse.json({ message: 'PUBG UC Store API v1.0', status: 'ok' });
+      return NextResponse.json({ message: 'PUBG UC Store API v1.0', status: 'ok', version: APP_VERSION });
+    }
+
+    // Rate limiting for GET endpoints
+    const user = verifyToken(request);
+    const rateLimit = checkRateLimit(pathname, request, user);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Too many requests', message: 'Çok fazla istek gönderildi. Lütfen bekleyin.' },
+        { 
+          status: 429,
+          headers: {
+            'Retry-After': rateLimit.retryAfter?.toString() || '60',
+            'X-RateLimit-Remaining': '0'
+          }
+        }
+      );
     }
 
     // Get all products
