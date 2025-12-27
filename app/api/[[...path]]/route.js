@@ -973,7 +973,8 @@ export async function GET(request) {
         data: {
           enabled: settings?.dailyBannerEnabled !== false,
           title: settings?.dailyBannerTitle || 'Bugüne Özel Fiyatlar',
-          subtitle: settings?.dailyBannerSubtitle || ''
+          subtitle: settings?.dailyBannerSubtitle || '',
+          icon: settings?.dailyBannerIcon || 'fire'
         }
       });
     }
