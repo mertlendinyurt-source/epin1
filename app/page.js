@@ -484,14 +484,44 @@ export default function App() {
                 </Button>
                 
                 {/* Dropdown Menu */}
-                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="py-2">
+                <div className="absolute right-0 mt-2 w-56 bg-[#1e2229] rounded-xl shadow-xl border border-white/10 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 overflow-hidden">
+                  <div className="p-2">
+                    <button
+                      onClick={() => window.location.href = '/account'}
+                      className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                      <User className="w-4 h-4 text-blue-400" />
+                      Hesabım
+                    </button>
+                    <button
+                      onClick={() => window.location.href = '/account/profile'}
+                      className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                      <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Profil Bilgileri
+                    </button>
                     <button
                       onClick={() => window.location.href = '/account/orders'}
-                      className="w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+                      className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-3"
                     >
-                      📦 Siparişlerim
+                      <svg className="w-4 h-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                      Siparişlerim
                     </button>
+                    <button
+                      onClick={() => window.location.href = '/account/security'}
+                      className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-3"
+                    >
+                      <svg className="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      Güvenlik
+                    </button>
+                  </div>
+                  <div className="border-t border-white/10 p-2">
                     <button
                       onClick={() => {
                         localStorage.removeItem('userToken');
@@ -500,9 +530,12 @@ export default function App() {
                         toast.success('Çıkış yapıldı');
                         window.location.reload();
                       }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700 transition-colors"
+                      className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:bg-red-600/10 rounded-lg transition-colors flex items-center gap-3"
                     >
-                      🚪 Çıkış Yap
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Çıkış Yap
                     </button>
                   </div>
                 </div>
