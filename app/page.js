@@ -661,11 +661,7 @@ export default function App() {
                   {siteSettings?.dailyBannerTitle || 'Bugüne Özel Fiyatlar'}
                 </h2>
                 <p className="text-sm md:text-base text-white/60 mt-0.5">
-                  {siteSettings?.dailyBannerSubtitle || new Date().toLocaleDateString('tr-TR', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric' 
-                  })}
+                  {siteSettings?.dailyBannerSubtitle || todayDate || ''}
                 </p>
               </div>
             </div>
