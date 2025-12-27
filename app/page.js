@@ -115,6 +115,7 @@ export default function App() {
     fetchReviews(1)
     fetchFooterSettings()
     handleGoogleAuthCallback() // Handle Google OAuth callback
+    handleLoginRedirect() // Handle login redirect from /admin/login
     
     // Set today's date only on client-side to avoid hydration mismatch
     setTodayDate(new Date().toLocaleDateString('tr-TR', { 
@@ -161,6 +162,20 @@ export default function App() {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
+
+  // Handle login redirect from /admin/login
+  const handleLoginRedirect = () => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const loginParam = urlParams.get('login')
+    
+    if (loginParam === 'true') {
+      // Open login modal
+      setShowAuthModal(true)
+      setAuthModalTab('login')
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }
 
   // Handle Google OAuth callback - read cookies and save to localStorage
   const handleGoogleAuthCallback = () => {
