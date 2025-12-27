@@ -4054,9 +4054,17 @@ export async function DELETE(request) {
 
     // Delete product (HARD DELETE - permanently remove from database)
     if (pathname.match(/^\/api\/admin\/products\/[^\/]+$/)) {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+      
       const productId = pathname.split('/').pop();
       
-      // Get product info before deletion (for image cleanup)
+      // Get product info before deletion (for image cleanup and audit)
       const product = await db.collection('products').findOne({ id: productId });
       
       if (!product) {
@@ -4079,8 +4087,12 @@ export async function DELETE(request) {
       // Delete all stock items associated with this product
       const stockDeleteResult = await db.collection('stocks').deleteMany({ productId: productId });
       
-      // Log the deletion
-      console.log(`Product ${productId} deleted permanently. Stock items deleted: ${stockDeleteResult.deletedCount}`);
+      // Audit log - product deletion
+      await logAuditAction(db, AUDIT_ACTIONS.PRODUCT_DELETE, user.id || user.email, 'product', productId, request, {
+        productTitle: product.title,
+        ucAmount: product.ucAmount,
+        stocksDeleted: stockDeleteResult.deletedCount
+      });
       
       // Optionally delete uploaded image if it's a local file
       if (product.imageUrl && product.imageUrl.startsWith('/uploads/')) {
@@ -4089,10 +4101,8 @@ export async function DELETE(request) {
           const path = await import('path');
           const imagePath = path.join(process.cwd(), 'public', product.imageUrl);
           await fs.unlink(imagePath);
-          console.log(`Product image deleted: ${imagePath}`);
         } catch (err) {
           // Image might not exist or already deleted, continue
-          console.log(`Could not delete image: ${err.message}`);
         }
       }
       
