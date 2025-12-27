@@ -814,6 +814,66 @@ PUBG Mobile, dünyanın en popüler battle royale oyunlarından biridir. Unknown
       return NextResponse.json({ success: true, data: settings });
     }
 
+    // User: Get my profile
+    if (pathname === '/api/account/me') {
+      const userData = verifyToken(request);
+      if (!userData) {
+        return NextResponse.json(
+          { success: false, error: 'Oturum açmanız gerekiyor' },
+          { status: 401 }
+        );
+      }
+
+      const user = await db.collection('users').findOne({ id: userData.userId });
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Kullanıcı bulunamadı' },
+          { status: 404 }
+        );
+      }
+
+      // Get order statistics
+      const orderCount = await db.collection('orders').countDocuments({ userId: user.id });
+      const lastOrder = await db.collection('orders')
+        .findOne({ userId: user.id }, { sort: { createdAt: -1 } });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          phone: user.phone || '',
+          createdAt: user.createdAt,
+          stats: {
+            totalOrders: orderCount,
+            lastOrderDate: lastOrder?.createdAt || null,
+            lastOrderStatus: lastOrder?.status || null
+          }
+        }
+      });
+    }
+
+    // User: Get my recent orders (for dashboard)
+    if (pathname === '/api/account/orders/recent') {
+      const userData = verifyToken(request);
+      if (!userData) {
+        return NextResponse.json(
+          { success: false, error: 'Oturum açmanız gerekiyor' },
+          { status: 401 }
+        );
+      }
+
+      const orders = await db.collection('orders')
+        .find({ userId: userData.userId })
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .toArray();
+
+      return NextResponse.json({ success: true, data: orders });
+    }
+
     return NextResponse.json(
       { success: false, error: 'Endpoint bulunamadı' },
       { status: 404 }
