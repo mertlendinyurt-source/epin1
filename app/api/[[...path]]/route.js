@@ -46,7 +46,7 @@ function verifyToken(request) {
 
 // Verify Admin Token (requires username field, not type)
 function verifyAdminToken(request) {
-  const user = verifyToken(request);
+  const user = verifyAdminToken(request);
   if (!user) return null;
   
   // Admin tokens have 'username' field, user tokens have 'type' field
@@ -279,7 +279,7 @@ export async function GET(request) {
 
     // Admin: Get single order
     if (pathname.match(/^\/api\/admin\/orders\/[^\/]+$/)) {
-      const user = verifyToken(request);
+      const user = verifyAdminToken(request);
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'Yetkisiz erişim' },
@@ -308,7 +308,7 @@ export async function GET(request) {
 
     // Admin: Get all products (including inactive)
     if (pathname === '/api/admin/products') {
-      const user = verifyToken(request);
+      const user = verifyAdminToken(request);
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'Yetkisiz erişim' },
@@ -326,7 +326,7 @@ export async function GET(request) {
 
     // Admin: Dashboard stats
     if (pathname === '/api/admin/dashboard') {
-      const user = verifyToken(request);
+      const user = verifyAdminToken(request);
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'Yetkisiz erişim' },
@@ -367,7 +367,7 @@ export async function GET(request) {
 
     // Admin: Get Shopier payment settings (masked)
     if (pathname === '/api/admin/settings/payments') {
-      const user = verifyToken(request);
+      const user = verifyAdminToken(request);
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'Yetkisiz erişim' },
@@ -461,7 +461,7 @@ export async function GET(request) {
 
     // Admin: Get product stock
     if (pathname.match(/^\/api\/admin\/products\/[^\/]+\/stock$/)) {
-      const user = verifyToken(request);
+      const user = verifyAdminToken(request);
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'Yetkisiz erişim' },
@@ -1061,7 +1061,7 @@ export async function POST(request) {
 
     // Admin: Create product
     if (pathname === '/api/admin/products') {
-      const user = verifyToken(request);
+      const user = verifyAdminToken(request);
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'Yetkisiz erişim' },
@@ -1085,7 +1085,7 @@ export async function POST(request) {
 
     // Admin: Save Shopier payment settings (encrypted)
     if (pathname === '/api/admin/settings/payments') {
-      const user = verifyToken(request);
+      const user = verifyAdminToken(request);
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'Yetkisiz erişim' },
@@ -1149,7 +1149,7 @@ export async function POST(request) {
 
     // Admin: Add stock to product (bulk)
     if (pathname.match(/^\/api\/admin\/products\/[^\/]+\/stock$/)) {
-      const user = verifyToken(request);
+      const user = verifyAdminToken(request);
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'Yetkisiz erişim' },
@@ -1215,7 +1215,7 @@ export async function PUT(request) {
   const { pathname } = new URL(request.url);
   
   try {
-    const user = verifyToken(request);
+    const user = verifyAdminToken(request);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Yetkisiz erişim' },
@@ -1260,7 +1260,7 @@ export async function DELETE(request) {
   const { pathname } = new URL(request.url);
   
   try {
-    const user = verifyToken(request);
+    const user = verifyAdminToken(request);
     if (!user) {
       return NextResponse.json(
         { success: false, error: 'Yetkisiz erişim' },
