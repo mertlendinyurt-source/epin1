@@ -76,7 +76,7 @@ export default function SiteSettingsPage() {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Dosya boyutu 2MB\\'dan büyük olamaz');
+      toast.error('Dosya boyutu 2MB\'dan büyük olamaz');
       return;
     }
 
