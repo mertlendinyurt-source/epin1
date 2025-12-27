@@ -92,7 +92,83 @@ export default function AdminProducts() {
     })
     setImagePreview(product.imageUrl || null)
     setImageFile(null)
+    setPriceErrors({})
+    setLastEditedField(null)
     setEditDialogOpen(true)
+  }
+
+  // Auto-calculate discount percentage when prices change
+  const calculateDiscountPercent = useCallback((listPrice, salePrice) => {
+    const list = parseFloat(listPrice) || 0
+    const sale = parseFloat(salePrice) || 0
+    if (list <= 0) return 0
+    const percent = Math.round(((list - sale) / list) * 100)
+    return Math.max(0, Math.min(100, percent))
+  }, [])
+
+  // Auto-calculate sale price from discount percent
+  const calculateSalePrice = useCallback((listPrice, discountPercent) => {
+    const list = parseFloat(listPrice) || 0
+    const percent = parseFloat(discountPercent) || 0
+    if (list <= 0) return 0
+    const salePrice = list * (1 - percent / 100)
+    return Math.round(salePrice * 100) / 100
+  }, [])
+
+  // Handle price field changes with auto-calculation
+  const handlePriceChange = (field, value) => {
+    const newFormData = { ...formData, [field]: value }
+    setLastEditedField(field)
+    
+    // Clear previous errors
+    const newErrors = { ...priceErrors }
+    delete newErrors[field]
+    
+    if (field === 'price') {
+      // List price changed - recalculate discount %
+      const listPrice = parseFloat(value) || 0
+      const salePrice = parseFloat(newFormData.discountPrice) || 0
+      
+      if (listPrice > 0 && salePrice > 0) {
+        newFormData.discountPercent = calculateDiscountPercent(listPrice, salePrice).toString()
+      }
+      
+      // Validate
+      if (listPrice < 0) {
+        newErrors.price = 'Fiyat negatif olamaz'
+      }
+    } else if (field === 'discountPrice') {
+      // Sale price changed - recalculate discount %
+      const listPrice = parseFloat(newFormData.price) || 0
+      const salePrice = parseFloat(value) || 0
+      
+      if (listPrice > 0) {
+        newFormData.discountPercent = calculateDiscountPercent(listPrice, salePrice).toString()
+      }
+      
+      // Validate
+      if (salePrice < 0) {
+        newErrors.discountPrice = 'Fiyat negatif olamaz'
+      } else if (salePrice > listPrice && listPrice > 0) {
+        newErrors.discountPrice = 'İndirimli fiyat liste fiyatından yüksek olamaz'
+      }
+    } else if (field === 'discountPercent') {
+      // Discount percent changed - recalculate sale price
+      const listPrice = parseFloat(newFormData.price) || 0
+      const percent = parseFloat(value) || 0
+      
+      if (listPrice > 0) {
+        newFormData.discountPrice = calculateSalePrice(listPrice, percent).toString()
+      }
+      
+      // Validate
+      if (percent < 0 || percent > 100) {
+        newErrors.discountPercent = 'Yüzde 0-100 arasında olmalı'
+      }
+    }
+    
+    setPriceErrors(newErrors)
+    setFormData(newFormData)
   }
 
   const handleImageSelect = (e) => {
