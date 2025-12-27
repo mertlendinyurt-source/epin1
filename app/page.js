@@ -170,7 +170,7 @@ export default function App() {
     
     if (loginParam === 'true') {
       // Open login modal
-      setShowAuthModal(true)
+      setAuthModalOpen(true)
       setAuthModalTab('login')
       // Clean URL
       window.history.replaceState({}, '', window.location.pathname)
