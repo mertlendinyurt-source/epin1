@@ -5,10 +5,417 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { encrypt, decrypt, maskSensitiveData, generateShopierHash } from '@/lib/crypto';
 import { saveUploadedFile, deleteUploadedFile } from '@/lib/fileUpload';
+import nodemailer from 'nodemailer';
 
 const MONGO_URL = process.env.MONGO_URL;
 const DB_NAME = process.env.DB_NAME || 'pubg_uc_store';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+// ============================================
+// EMAIL SERVICE
+// ============================================
+
+async function getEmailSettings(db) {
+  const settings = await db.collection('email_settings').findOne({ id: 'main' });
+  if (!settings) return null;
+  
+  // Decrypt SMTP password
+  if (settings.smtpPass) {
+    try {
+      settings.smtpPass = decrypt(settings.smtpPass);
+    } catch (error) {
+      console.error('Failed to decrypt SMTP password');
+      return null;
+    }
+  }
+  
+  return settings;
+}
+
+async function createTransporter(settings) {
+  if (!settings || !settings.enableEmail) return null;
+  
+  return nodemailer.createTransport({
+    host: settings.smtpHost,
+    port: parseInt(settings.smtpPort) || 587,
+    secure: settings.smtpSecure === true || settings.smtpPort === '465',
+    auth: {
+      user: settings.smtpUser,
+      pass: settings.smtpPass
+    }
+  });
+}
+
+// Email log to prevent duplicates
+async function checkEmailSent(db, type, userId, orderId = null, ticketId = null) {
+  const query = { type, userId };
+  if (orderId) query.orderId = orderId;
+  if (ticketId) query.ticketId = ticketId;
+  
+  const existing = await db.collection('email_logs').findOne(query);
+  return !!existing;
+}
+
+async function logEmail(db, type, userId, to, status, orderId = null, ticketId = null, error = null) {
+  await db.collection('email_logs').insertOne({
+    id: uuidv4(),
+    type,
+    userId,
+    orderId,
+    ticketId,
+    to,
+    status,
+    error: error ? error.message : null,
+    createdAt: new Date()
+  });
+}
+
+// Premium HTML Email Template Generator
+function generateEmailTemplate(content, settings = {}) {
+  const logoUrl = settings.logoUrl || `${BASE_URL}/logo.png`;
+  const siteName = settings.siteName || 'PUBG UC Store';
+  
+  return `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${content.subject}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #0a0b0d; color: #ffffff;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td style="padding: 40px 20px;">
+        <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #12151a; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.4);">
+          
+          <!-- Header -->
+          <tr>
+            <td style="padding: 32px 40px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); text-align: center;">
+              <img src="${logoUrl}" alt="${siteName}" style="height: 48px; margin-bottom: 12px;" onerror="this.style.display='none'">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px;">${siteName}</h1>
+            </td>
+          </tr>
+          
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px;">
+              <h2 style="margin: 0 0 24px 0; font-size: 22px; font-weight: 600; color: #ffffff; line-height: 1.3;">
+                ${content.title}
+              </h2>
+              
+              <div style="font-size: 15px; line-height: 1.7; color: #a1a1aa;">
+                ${content.body}
+              </div>
+              
+              ${content.cta ? `
+              <div style="margin-top: 32px; text-align: center;">
+                <a href="${content.cta.url}" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);">
+                  ${content.cta.text}
+                </a>
+              </div>
+              ` : ''}
+              
+              ${content.codes ? `
+              <div style="margin-top: 32px; padding: 24px; background-color: #1e2229; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                <h3 style="margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: #fbbf24; text-transform: uppercase; letter-spacing: 1px;">
+                  🎁 Teslim Edilen Kodlar
+                </h3>
+                ${content.codes.map(code => `
+                <div style="margin-bottom: 12px; padding: 16px; background-color: #12151a; border-radius: 8px; border: 1px dashed rgba(59, 130, 246, 0.5);">
+                  <code style="font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 16px; color: #60a5fa; word-break: break-all; letter-spacing: 1px;">
+                    ${code}
+                  </code>
+                </div>
+                `).join('')}
+                <p style="margin: 16px 0 0 0; font-size: 12px; color: #f87171;">
+                  ⚠️ Bu kodları kimseyle paylaşmayın. Güvenliğiniz için saklayın.
+                </p>
+              </div>
+              ` : ''}
+              
+              ${content.info ? `
+              <div style="margin-top: 24px; padding: 20px; background-color: rgba(59, 130, 246, 0.1); border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <p style="margin: 0; font-size: 14px; color: #93c5fd;">
+                  ${content.info}
+                </p>
+              </div>
+              ` : ''}
+              
+              ${content.warning ? `
+              <div style="margin-top: 24px; padding: 20px; background-color: rgba(239, 68, 68, 0.1); border-radius: 8px; border-left: 4px solid #ef4444;">
+                <p style="margin: 0; font-size: 14px; color: #fca5a5;">
+                  ⚠️ ${content.warning}
+                </p>
+              </div>
+              ` : ''}
+            </td>
+          </tr>
+          
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 24px 40px; background-color: #0a0b0d; border-top: 1px solid rgba(255,255,255,0.05);">
+              <p style="margin: 0 0 8px 0; font-size: 13px; color: #71717a; text-align: center;">
+                ${siteName} - Güvenilir UC Satış Platformu
+              </p>
+              <p style="margin: 0; font-size: 12px; color: #52525b; text-align: center;">
+                <a href="${BASE_URL}/legal/terms" style="color: #52525b; text-decoration: none;">Kullanım Şartları</a>
+                &nbsp;•&nbsp;
+                <a href="${BASE_URL}/legal/privacy" style="color: #52525b; text-decoration: none;">Gizlilik Politikası</a>
+                &nbsp;•&nbsp;
+                <a href="${BASE_URL}/account/support" style="color: #52525b; text-decoration: none;">Destek</a>
+              </p>
+            </td>
+          </tr>
+          
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+// Email Sending Functions
+async function sendEmail(db, type, to, content, userId, orderId = null, ticketId = null, skipDuplicateCheck = false) {
+  const settings = await getEmailSettings(db);
+  
+  if (!settings || !settings.enableEmail) {
+    console.log('Email disabled or not configured');
+    return { success: false, reason: 'disabled' };
+  }
+  
+  // Check for duplicates (unless skipped)
+  if (!skipDuplicateCheck) {
+    const alreadySent = await checkEmailSent(db, type, userId, orderId, ticketId);
+    if (alreadySent) {
+      console.log(`Duplicate email prevented: ${type} for user ${userId}`);
+      return { success: false, reason: 'duplicate' };
+    }
+  }
+  
+  try {
+    const transporter = await createTransporter(settings);
+    if (!transporter) {
+      return { success: false, reason: 'transporter_failed' };
+    }
+    
+    // Get site settings for template
+    const siteSettings = await db.collection('site_settings').findOne({ id: 'main' });
+    
+    const html = generateEmailTemplate(content, {
+      logoUrl: siteSettings?.logoUrl,
+      siteName: siteSettings?.siteName || 'PUBG UC Store'
+    });
+    
+    await transporter.sendMail({
+      from: `"${settings.fromName}" <${settings.fromEmail}>`,
+      to,
+      subject: content.subject,
+      html
+    });
+    
+    await logEmail(db, type, userId, to, 'sent', orderId, ticketId);
+    console.log(`Email sent: ${type} to ${to}`);
+    return { success: true };
+    
+  } catch (error) {
+    console.error(`Email send failed: ${error.message}`);
+    await logEmail(db, type, userId, to, 'failed', orderId, ticketId, error);
+    return { success: false, reason: 'send_failed', error: error.message };
+  }
+}
+
+// Specific Email Templates
+async function sendWelcomeEmail(db, user) {
+  const content = {
+    subject: `Hoş geldin, ${user.firstName}! 🎮`,
+    title: `Merhaba ${user.firstName}!`,
+    body: `
+      <p>PUBG UC Store ailesine hoş geldin!</p>
+      <p>Hesabın başarıyla oluşturuldu. Artık en uygun fiyatlarla UC satın alabilir ve anında teslimat alabilirsin.</p>
+      <p style="margin-top: 20px;">
+        <strong>Hesap Bilgilerin:</strong><br>
+        📧 E-posta: ${user.email}<br>
+        📱 Telefon: ${user.phone}
+      </p>
+    `,
+    cta: {
+      text: 'Alışverişe Başla',
+      url: BASE_URL
+    },
+    info: 'Sorularınız için destek talebi oluşturabilirsiniz.'
+  };
+  
+  return sendEmail(db, 'welcome', user.email, content, user.id);
+}
+
+async function sendOrderCreatedEmail(db, order, user, product) {
+  const content = {
+    subject: `Siparişiniz alındı — #${order.id.slice(-8)}`,
+    title: 'Siparişiniz Alındı! 🛒',
+    body: `
+      <p>Merhaba ${user.firstName},</p>
+      <p>Siparişiniz başarıyla oluşturuldu. Ödeme işlemini tamamladıktan sonra teslimat yapılacaktır.</p>
+      
+      <div style="margin-top: 24px; padding: 20px; background-color: #1e2229; border-radius: 8px;">
+        <h4 style="margin: 0 0 16px 0; color: #fbbf24;">Sipariş Detayları</h4>
+        <table style="width: 100%; font-size: 14px; color: #a1a1aa;">
+          <tr><td style="padding: 8px 0;">Sipariş No:</td><td style="text-align: right; color: #fff;">#${order.id.slice(-8)}</td></tr>
+          <tr><td style="padding: 8px 0;">Ürün:</td><td style="text-align: right; color: #fff;">${product.name}</td></tr>
+          <tr><td style="padding: 8px 0;">UC Miktarı:</td><td style="text-align: right; color: #60a5fa;">${product.ucAmount} UC</td></tr>
+          <tr><td style="padding: 8px 0;">Oyuncu ID:</td><td style="text-align: right; color: #fff;">${order.playerId}</td></tr>
+          <tr><td style="padding: 8px 0;">Oyuncu Adı:</td><td style="text-align: right; color: #fff;">${order.playerName}</td></tr>
+          <tr style="border-top: 1px solid rgba(255,255,255,0.1);"><td style="padding: 16px 0 8px 0; font-weight: 600; color: #fff;">Toplam:</td><td style="text-align: right; font-size: 18px; font-weight: 700; color: #22c55e;">${product.price.toFixed(2)} TL</td></tr>
+        </table>
+      </div>
+    `,
+    cta: {
+      text: 'Siparişi Görüntüle',
+      url: `${BASE_URL}/account/orders/${order.id}`
+    },
+    info: 'Ödeme sayfasına yönlendirildiniz. Ödeme tamamlandıktan sonra teslimat otomatik yapılacaktır.'
+  };
+  
+  return sendEmail(db, 'order_created', user.email, content, user.id, order.id);
+}
+
+async function sendPaymentSuccessEmail(db, order, user, product) {
+  const content = {
+    subject: `Ödemeniz alındı — #${order.id.slice(-8)}`,
+    title: 'Ödeme Başarılı! ✅',
+    body: `
+      <p>Merhaba ${user.firstName},</p>
+      <p>Ödemeniz başarıyla alındı! Siparişiniz işleme alındı ve teslimat hazırlanıyor.</p>
+      
+      <div style="margin-top: 24px; padding: 20px; background-color: #1e2229; border-radius: 8px;">
+        <table style="width: 100%; font-size: 14px; color: #a1a1aa;">
+          <tr><td style="padding: 8px 0;">Sipariş No:</td><td style="text-align: right; color: #fff;">#${order.id.slice(-8)}</td></tr>
+          <tr><td style="padding: 8px 0;">Ürün:</td><td style="text-align: right; color: #fff;">${product.name}</td></tr>
+          <tr><td style="padding: 8px 0;">Ödenen Tutar:</td><td style="text-align: right; color: #22c55e;">${product.price.toFixed(2)} TL</td></tr>
+        </table>
+      </div>
+    `,
+    cta: {
+      text: 'Sipariş Durumunu Kontrol Et',
+      url: `${BASE_URL}/account/orders/${order.id}`
+    },
+    info: 'Teslimat tamamlandığında size tekrar bilgi vereceğiz.'
+  };
+  
+  return sendEmail(db, 'paid', user.email, content, user.id, order.id);
+}
+
+async function sendDeliveredEmail(db, order, user, product, codes) {
+  const content = {
+    subject: `Teslimat tamamlandı — #${order.id.slice(-8)}`,
+    title: 'Teslimat Tamamlandı! 🎉',
+    body: `
+      <p>Merhaba ${user.firstName},</p>
+      <p>Harika haber! Siparişiniz başarıyla teslim edildi. Aşağıda UC kodlarınızı bulabilirsiniz.</p>
+      
+      <div style="margin-top: 20px; padding: 16px; background-color: #1e2229; border-radius: 8px;">
+        <table style="width: 100%; font-size: 14px; color: #a1a1aa;">
+          <tr><td style="padding: 6px 0;">Ürün:</td><td style="text-align: right; color: #fff;">${product.name}</td></tr>
+          <tr><td style="padding: 6px 0;">UC Miktarı:</td><td style="text-align: right; color: #60a5fa;">${product.ucAmount} UC</td></tr>
+          <tr><td style="padding: 6px 0;">Oyuncu:</td><td style="text-align: right; color: #fff;">${order.playerName} (${order.playerId})</td></tr>
+        </table>
+      </div>
+    `,
+    codes: codes,
+    cta: {
+      text: 'Sipariş Detaylarını Gör',
+      url: `${BASE_URL}/account/orders/${order.id}`
+    },
+    warning: 'Bu kodları kimseyle paylaşmayın! Kodlar tek kullanımlıktır.'
+  };
+  
+  return sendEmail(db, 'delivered', user.email, content, user.id, order.id);
+}
+
+async function sendPendingStockEmail(db, order, user, product, message) {
+  const content = {
+    subject: `Stok bekleniyor — #${order.id.slice(-8)}`,
+    title: 'Siparişiniz Beklemede 📦',
+    body: `
+      <p>Merhaba ${user.firstName},</p>
+      <p>Ödemeniz alındı ancak şu anda bu ürün için stok bulunmamaktadır.</p>
+      <p><strong>Durum:</strong> ${message || 'Stok bekleniyor'}</p>
+      
+      <div style="margin-top: 20px; padding: 16px; background-color: #1e2229; border-radius: 8px;">
+        <table style="width: 100%; font-size: 14px; color: #a1a1aa;">
+          <tr><td style="padding: 6px 0;">Sipariş No:</td><td style="text-align: right; color: #fff;">#${order.id.slice(-8)}</td></tr>
+          <tr><td style="padding: 6px 0;">Ürün:</td><td style="text-align: right; color: #fff;">${product.name}</td></tr>
+        </table>
+      </div>
+    `,
+    cta: {
+      text: 'Sipariş Durumunu Takip Et',
+      url: `${BASE_URL}/account/orders/${order.id}`
+    },
+    info: 'Stok geldiğinde siparişiniz otomatik olarak teslim edilecek ve size bilgi verilecektir.'
+  };
+  
+  return sendEmail(db, 'pending', user.email, content, user.id, order.id);
+}
+
+async function sendSupportReplyEmail(db, ticket, user, adminMessage) {
+  const preview = adminMessage.length > 200 ? adminMessage.substring(0, 200) + '...' : adminMessage;
+  
+  const content = {
+    subject: `Destek talebinize yanıt var — #${ticket.id.slice(-8)}`,
+    title: 'Destek Ekibinden Yanıt 💬',
+    body: `
+      <p>Merhaba ${user.firstName},</p>
+      <p>Destek talebinize yanıt verildi.</p>
+      
+      <div style="margin-top: 20px; padding: 20px; background-color: #1e2229; border-radius: 8px;">
+        <p style="margin: 0 0 12px 0; font-size: 12px; color: #71717a; text-transform: uppercase;">Talep: ${ticket.subject}</p>
+        <div style="padding: 16px; background-color: #12151a; border-radius: 8px; border-left: 3px solid #22c55e;">
+          <p style="margin: 0; font-size: 14px; color: #d4d4d8; line-height: 1.6;">
+            "${preview}"
+          </p>
+        </div>
+      </div>
+    `,
+    cta: {
+      text: 'Yanıtı Görüntüle',
+      url: `${BASE_URL}/account/support/${ticket.id}`
+    },
+    info: 'Artık siz de yanıt verebilirsiniz.'
+  };
+  
+  // Support replies can be multiple, so skip duplicate check
+  return sendEmail(db, 'support_reply', user.email, content, user.id, null, ticket.id, true);
+}
+
+async function sendPasswordChangedEmail(db, user) {
+  const content = {
+    subject: 'Şifreniz değiştirildi ⚠️',
+    title: 'Şifre Değişikliği Bildirimi',
+    body: `
+      <p>Merhaba ${user.firstName},</p>
+      <p>Hesabınızın şifresi başarıyla değiştirildi.</p>
+      
+      <div style="margin-top: 20px; padding: 16px; background-color: #1e2229; border-radius: 8px;">
+        <p style="margin: 0; font-size: 14px; color: #a1a1aa;">
+          📅 Tarih: ${new Date().toLocaleString('tr-TR')}<br>
+          📧 Hesap: ${user.email}
+        </p>
+      </div>
+    `,
+    warning: 'Bu işlemi siz yapmadıysanız, hemen destek ekibiyle iletişime geçin!',
+    cta: {
+      text: 'Destek Talebi Oluştur',
+      url: `${BASE_URL}/account/support/new`
+    }
+  };
+  
+  // Password change emails should always send (skip duplicate)
+  return sendEmail(db, 'password_changed', user.email, content, user.id, null, null, true);
+}
 
 let cachedClient = null;
 
