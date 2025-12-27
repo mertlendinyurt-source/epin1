@@ -29,7 +29,7 @@ export default function OAuthSettingsPage() {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
+      const token = localStorage.getItem('userToken') || localStorage.getItem('adminToken');
       if (!token) {
         router.push('/admin/login');
         return;
@@ -39,7 +39,7 @@ export default function OAuthSettingsPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.status === 401) {
+      if (response.status === 401 || response.status === 403) {
         router.push('/admin/login');
         return;
       }
