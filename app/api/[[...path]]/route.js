@@ -1048,6 +1048,102 @@ export async function GET(request) {
       });
     }
 
+    // Admin: Get Audit Logs
+    if (pathname === '/api/admin/audit-logs') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const page = parseInt(searchParams.get('page')) || 1;
+      const limit = parseInt(searchParams.get('limit')) || 50;
+      const action = searchParams.get('action');
+      const entityType = searchParams.get('entityType');
+      const actorId = searchParams.get('actorId');
+      const startDate = searchParams.get('startDate');
+      const endDate = searchParams.get('endDate');
+
+      // Build query
+      const query = {};
+      if (action) query.action = action;
+      if (entityType) query.entityType = entityType;
+      if (actorId) query.actorId = actorId;
+      if (startDate || endDate) {
+        query.createdAt = {};
+        if (startDate) query.createdAt.$gte = new Date(startDate);
+        if (endDate) query.createdAt.$lte = new Date(endDate);
+      }
+
+      const total = await db.collection('audit_logs').countDocuments(query);
+      const logs = await db.collection('audit_logs')
+        .find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .toArray();
+
+      // Get unique action types for filter dropdown
+      const actionTypes = await db.collection('audit_logs').distinct('action');
+      const entityTypes = await db.collection('audit_logs').distinct('entityType');
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          logs,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit)
+          },
+          filters: {
+            actionTypes,
+            entityTypes
+          }
+        }
+      });
+    }
+
+    // Admin: Get system health/status
+    if (pathname === '/api/admin/system-status') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      // Get various counts for system status
+      const usersCount = await db.collection('users').countDocuments();
+      const ordersToday = await db.collection('orders').countDocuments({
+        createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+      });
+      const pendingOrders = await db.collection('orders').countDocuments({ status: 'pending' });
+      const availableStock = await db.collection('stocks').countDocuments({ status: 'available' });
+      const openTickets = await db.collection('tickets').countDocuments({ status: { $ne: 'closed' } });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          version: APP_VERSION,
+          uptime: process.uptime(),
+          timestamp: new Date().toISOString(),
+          metrics: {
+            totalUsers: usersCount,
+            ordersToday,
+            pendingOrders,
+            availableStock,
+            openTickets
+          },
+          status: 'healthy'
+        }
+      });
+    }
+
     // Admin: Get Shopier payment settings (masked)
     if (pathname === '/api/admin/settings/payments') {
       const user = verifyAdminToken(request);
