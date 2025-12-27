@@ -518,6 +518,7 @@ export async function GET(request) {
           logo: null,
           favicon: null,
           heroImage: null,
+          categoryIcon: null,
           active: true
         }
       });
@@ -532,7 +533,8 @@ export async function GET(request) {
         data: {
           logo: settings?.logo || null,
           favicon: settings?.favicon || null,
-          heroImage: settings?.heroImage || null
+          heroImage: settings?.heroImage || null,
+          categoryIcon: settings?.categoryIcon || null
         }
       });
     }
