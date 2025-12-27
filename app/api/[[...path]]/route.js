@@ -1139,6 +1139,64 @@ PUBG Mobile, dünyanın en popüler battle royale oyunlarından biridir. Unknown
       return NextResponse.json({ success: true, data: content });
     }
 
+    // Admin: Get email settings
+    if (pathname === '/api/admin/email/settings') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const settings = await db.collection('email_settings').findOne({ id: 'main' });
+      
+      if (!settings) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            enableEmail: false,
+            fromName: '',
+            fromEmail: '',
+            smtpHost: '',
+            smtpPort: '587',
+            smtpSecure: false,
+            smtpUser: '',
+            smtpPass: '',
+            testRecipientEmail: ''
+          }
+        });
+      }
+      
+      // Don't send actual password, send masked version
+      return NextResponse.json({
+        success: true,
+        data: {
+          ...settings,
+          smtpPass: settings.smtpPass ? '••••••••' : ''
+        }
+      });
+    }
+
+    // Admin: Get email logs
+    if (pathname === '/api/admin/email/logs') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const logs = await db.collection('email_logs')
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(100)
+        .toArray();
+      
+      return NextResponse.json({ success: true, data: logs });
+    }
+
     // Public: Get legal page by slug
     if (pathname.match(/^\/api\/legal\/[^\/]+$/)) {
       const slug = pathname.split('/').pop();
