@@ -556,6 +556,49 @@ export async function POST(request) {
   try {
     await initializeDb();
     const db = await getDb();
+    
+    // Admin: Upload file (MUST BE BEFORE body = await request.json())
+    if (pathname === '/api/admin/upload') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      try {
+        const formData = await request.formData();
+        const file = formData.get('file');
+        const category = formData.get('category') || 'general';
+
+        if (!file) {
+          return NextResponse.json(
+            { success: false, error: 'Dosya seçilmedi' },
+            { status: 400 }
+          );
+        }
+
+        const fileUrl = await saveUploadedFile(file, category);
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            url: fileUrl,
+            filename: file.name,
+            size: file.size,
+            type: file.type
+          }
+        });
+      } catch (error) {
+        return NextResponse.json(
+          { success: false, error: error.message },
+          { status: 400 }
+        );
+      }
+    }
+    
+    // For all other endpoints, parse JSON body
     const body = await request.json();
 
     // Admin login
