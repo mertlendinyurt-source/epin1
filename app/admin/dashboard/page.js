@@ -163,6 +163,16 @@ export default function AdminDashboard() {
             Site Ayarları
           </Button>
           <Button
+            onClick={() => router.push('/admin/settings/oauth')}
+            variant="ghost"
+            className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
+          >
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            OAuth Ayarları
+          </Button>
+          <Button
             onClick={() => router.push('/admin/settings/regions')}
             variant="ghost"
             className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
