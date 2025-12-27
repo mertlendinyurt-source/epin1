@@ -465,6 +465,18 @@ function verifyAdminToken(request) {
   return user;
 }
 
+// Helper function to return 403 for non-admin users
+function requireAdmin(request) {
+  const user = verifyToken(request);
+  if (!user) {
+    return { error: 'Yetkisiz erişim', status: 401 };
+  }
+  if (user.role !== 'admin') {
+    return { error: 'Admin yetkisi gerekli', status: 403 };
+  }
+  return { user };
+}
+
 // Initialize DB with default data
 async function initializeDb() {
   const db = await getDb();
