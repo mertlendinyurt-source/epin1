@@ -905,12 +905,6 @@ export default function AdminProducts() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-            >
-              {uploadingImage ? 'Yükleniyor...' : 'Kaydet'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Stock Management Dialog */}
       <Dialog open={stockDialogOpen} onOpenChange={setStockDialogOpen}>
