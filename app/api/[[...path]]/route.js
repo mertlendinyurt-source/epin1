@@ -2703,6 +2703,14 @@ export async function POST(request) {
         }
       );
 
+      // Send support reply email to user
+      const ticketUser = await db.collection('users').findOne({ id: ticket.userId });
+      if (ticketUser) {
+        sendSupportReplyEmail(db, ticket, ticketUser, message).catch(err => 
+          console.error('Support reply email failed:', err)
+        );
+      }
+
       return NextResponse.json({
         success: true,
         message: 'Yanıt gönderildi',
