@@ -109,6 +109,7 @@ export default function App() {
     const token = localStorage.getItem('userToken')
     if (!token) {
       // Open auth modal instead of just showing toast
+      setAuthModalTab('login')
       setAuthModalOpen(true)
       toast.error('Sipariş vermek için giriş yapmalısınız')
       return
@@ -137,6 +138,7 @@ export default function App() {
         localStorage.removeItem('userToken')
         localStorage.removeItem('userData')
         setIsAuthenticated(false)
+        setAuthModalTab('login')
         setAuthModalOpen(true)
         toast.error('Oturumunuz sonlandı. Lütfen tekrar giriş yapın')
         return
@@ -146,6 +148,7 @@ export default function App() {
         window.location.href = data.data.paymentUrl
       } else {
         if (data.code === 'AUTH_REQUIRED') {
+          setAuthModalTab('login')
           setAuthModalOpen(true)
         }
         toast.error(data.error || 'Sipariş oluşturulamadı')
