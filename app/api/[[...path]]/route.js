@@ -1982,6 +1982,7 @@ export async function PUT(request) {
         );
       }
 
+      const userId = userData.id || userData.userId;
       const { firstName, lastName, phone } = body;
 
       // Validation
@@ -2017,11 +2018,11 @@ export async function PUT(request) {
       if (phone !== undefined) updateData.phone = phone.replace(/\s/g, '');
 
       await db.collection('users').updateOne(
-        { id: userData.userId },
+        { id: userId },
         { $set: updateData }
       );
 
-      const updatedUser = await db.collection('users').findOne({ id: userData.userId });
+      const updatedUser = await db.collection('users').findOne({ id: userId });
 
       return NextResponse.json({
         success: true,
@@ -2046,6 +2047,7 @@ export async function PUT(request) {
         );
       }
 
+      const userId = userData.id || userData.userId;
       const { currentPassword, newPassword, confirmPassword } = body;
 
       // Validation
@@ -2081,7 +2083,7 @@ export async function PUT(request) {
       }
 
       // Get user and verify current password
-      const user = await db.collection('users').findOne({ id: userData.userId });
+      const user = await db.collection('users').findOne({ id: userId });
       if (!user) {
         return NextResponse.json(
           { success: false, error: 'Kullanıcı bulunamadı' },
@@ -2100,7 +2102,7 @@ export async function PUT(request) {
       // Hash new password and update
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       await db.collection('users').updateOne(
-        { id: userData.userId },
+        { id: userId },
         { 
           $set: { 
             password: hashedPassword,
