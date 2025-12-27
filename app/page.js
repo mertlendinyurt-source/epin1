@@ -196,6 +196,22 @@ export default function App() {
     }
   }
 
+  // Flag badge component for regions without uploaded flag
+  const FlagBadge = ({ code }) => {
+    const colors = {
+      'TR': 'bg-red-600',
+      'GLOBAL': 'bg-blue-600',
+      'DE': 'bg-yellow-500 text-black',
+      'FR': 'bg-blue-500',
+      'JP': 'bg-red-500',
+    }
+    return (
+      <div className={`w-5 h-4 rounded-sm flex items-center justify-center text-[8px] font-bold text-white ${colors[code] || 'bg-gray-600'}`}>
+        {code === 'GLOBAL' ? '🌐' : code?.substring(0, 2) || '?'}
+      </div>
+    )
+  }
+
   const FilterSidebar = () => (
     <div className="w-full rounded-lg bg-[#1e2229] p-5">
       <div className="flex items-center gap-2 mb-5">
@@ -216,31 +232,55 @@ export default function App() {
             />
           </div>
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
-              <input type="checkbox" className="w-3.5 h-3.5 rounded" defaultChecked />
-              <span>🇹🇷</span>
-              <span>Türkiye</span>
-            </label>
-            <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
-              <input type="checkbox" className="w-3.5 h-3.5 rounded" />
-              <span>🌍</span>
-              <span>Küresel</span>
-            </label>
-            <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
-              <input type="checkbox" className="w-3.5 h-3.5 rounded" />
-              <span>🇩🇪</span>
-              <span>Almanya</span>
-            </label>
-            <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
-              <input type="checkbox" className="w-3.5 h-3.5 rounded" />
-              <span>🇫🇷</span>
-              <span>Fransa</span>
-            </label>
-            <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
-              <input type="checkbox" className="w-3.5 h-3.5 rounded" />
-              <span>🇯🇵</span>
-              <span>Japonya</span>
-            </label>
+            {regions.length > 0 ? (
+              regions.map((region, index) => (
+                <label key={region.id || index} className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
+                  <input type="checkbox" className="w-3.5 h-3.5 rounded" defaultChecked={index === 0} />
+                  {region.flagImageUrl ? (
+                    <img 
+                      src={`${region.flagImageUrl}?v=${Date.now()}`}
+                      alt={region.name}
+                      className="w-5 h-4 object-cover rounded-sm"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                        e.target.nextSibling.style.display = 'flex'
+                      }}
+                    />
+                  ) : null}
+                  {!region.flagImageUrl && <FlagBadge code={region.code} />}
+                  <span>{region.name}</span>
+                </label>
+              ))
+            ) : (
+              // Fallback if regions not loaded yet
+              <>
+                <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
+                  <input type="checkbox" className="w-3.5 h-3.5 rounded" defaultChecked />
+                  <FlagBadge code="TR" />
+                  <span>Türkiye</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
+                  <input type="checkbox" className="w-3.5 h-3.5 rounded" />
+                  <FlagBadge code="GLOBAL" />
+                  <span>Küresel</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
+                  <input type="checkbox" className="w-3.5 h-3.5 rounded" />
+                  <FlagBadge code="DE" />
+                  <span>Almanya</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
+                  <input type="checkbox" className="w-3.5 h-3.5 rounded" />
+                  <FlagBadge code="FR" />
+                  <span>Fransa</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm text-white cursor-pointer hover:text-white/80">
+                  <input type="checkbox" className="w-3.5 h-3.5 rounded" />
+                  <FlagBadge code="JP" />
+                  <span>Japonya</span>
+                </label>
+              </>
+            )}
           </div>
         </div>
 
