@@ -114,6 +114,7 @@ export default function App() {
     fetchGameContent()
     fetchReviews(1)
     fetchFooterSettings()
+    handleGoogleAuthCallback() // Handle Google OAuth callback
     
     // Set today's date only on client-side to avoid hydration mismatch
     setTodayDate(new Date().toLocaleDateString('tr-TR', { 
