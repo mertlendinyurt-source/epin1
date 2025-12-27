@@ -934,6 +934,7 @@ export async function GET(request) {
           dailyBannerEnabled: true,
           dailyBannerTitle: 'Bugüne Özel Fiyatlar',
           dailyBannerSubtitle: '',
+          dailyBannerIcon: 'fire',
           active: true
         }
       });
