@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LayoutDashboard, Package, ShoppingBag, LogOut, Search, Filter } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingBag, LogOut, Search, Filter, Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -143,6 +143,14 @@ export default function AdminOrders() {
             </svg>
             Ödeme Ayarları
           </Button>
+          <Button
+            onClick={() => router.push('/admin/settings/site')}
+            variant="ghost"
+            className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800"
+          >
+            <ImageIcon className="w-4 h-4 mr-2" />
+            Site Ayarları
+          </Button>
         </nav>
 
         <div className="absolute bottom-4 left-4 right-4">
@@ -161,52 +169,44 @@ export default function AdminOrders() {
       <div className="ml-64 p-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-white mb-2">Siparişler</h1>
-          <p className="text-slate-400">Tüm siparişleri görüntüle ve yönet</p>
+          <p className="text-slate-400">Tüm siparişleri görüntüleyin ve yönetin</p>
         </div>
 
-        {/* Filters */}
-        <Card className="bg-slate-900 border-slate-800 mb-6">
-          <CardContent className="pt-6">
-            <div className="flex gap-4">
-              <div className="flex-1">
+        <Card className="bg-slate-900 border-slate-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white">Sipariş Listesi</CardTitle>
+                <CardDescription className="text-slate-400">Tüm sipariş geçmişi</CardDescription>
+              </div>
+              <div className="flex gap-3">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="bg-slate-800 border-slate-700 text-white">
+                  <SelectTrigger className="w-[180px] bg-slate-800 border-slate-700 text-white">
                     <SelectValue placeholder="Durum filtrele" />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-800 border-slate-700">
-                    <SelectItem value="all" className="text-white">Tüm Durumlar</SelectItem>
+                    <SelectItem value="all" className="text-white">Tümü</SelectItem>
                     <SelectItem value="pending" className="text-white">Bekliyor</SelectItem>
                     <SelectItem value="paid" className="text-white">Ödendi</SelectItem>
                     <SelectItem value="failed" className="text-white">Başarısız</SelectItem>
-                    <SelectItem value="refunded" className="text-white">İade</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Orders Table */}
-        <Card className="bg-slate-900 border-slate-800">
-          <CardHeader>
-            <CardTitle className="text-white">Sipariş Listesi</CardTitle>
-            <CardDescription className="text-slate-400">
-              Toplam {filteredOrders.length} sipariş
-            </CardDescription>
           </CardHeader>
           <CardContent>
             {filteredOrders.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                Sipariş bulunamadı
+              <div className="text-center py-12">
+                <ShoppingBag className="w-16 h-16 mx-auto text-slate-700 mb-4" />
+                <p className="text-slate-400">Sipariş bulunamadı</p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="border-slate-800">
-                    <TableHead className="text-slate-400">Sipariş ID</TableHead>
+                    <TableHead className="text-slate-400">Sipariş No</TableHead>
                     <TableHead className="text-slate-400">Ürün</TableHead>
-                    <TableHead className="text-slate-400">Oyuncu ID</TableHead>
-                    <TableHead className="text-slate-400">Oyuncu Adı</TableHead>
+                    <TableHead className="text-slate-400">Oyuncu</TableHead>
                     <TableHead className="text-slate-400">Tutar</TableHead>
                     <TableHead className="text-slate-400">Durum</TableHead>
                     <TableHead className="text-slate-400">Tarih</TableHead>
@@ -215,18 +215,20 @@ export default function AdminOrders() {
                 <TableBody>
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id} className="border-slate-800 hover:bg-slate-800/50">
-                      <TableCell className="text-white font-mono text-xs">
-                        {order.id.slice(0, 12)}...
+                      <TableCell className="font-mono text-slate-400 text-xs">
+                        {order.id.substring(0, 8)}...
                       </TableCell>
-                      <TableCell className="text-white font-medium">{order.productTitle}</TableCell>
-                      <TableCell className="text-slate-400 font-mono text-sm">{order.playerId}</TableCell>
-                      <TableCell className="text-white">{order.playerName}</TableCell>
+                      <TableCell className="text-white">{order.productTitle}</TableCell>
+                      <TableCell className="text-slate-400">
+                        <div className="text-xs">{order.playerName}</div>
+                        <div className="text-xs text-slate-500">{order.playerId}</div>
+                      </TableCell>
                       <TableCell className="text-white font-semibold">
-                        {order.amount.toFixed(2)} {order.currency}
+                        {order.amount?.toFixed(2)} {order.currency}
                       </TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell className="text-slate-400 text-sm">
-                        {new Date(order.createdAt).toLocaleString('tr-TR')}
+                        {new Date(order.createdAt).toLocaleDateString('tr-TR')}
                       </TableCell>
                     </TableRow>
                   ))}
