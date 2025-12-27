@@ -1969,6 +1969,150 @@ export async function PUT(request) {
       });
     }
 
+    // User: Update my profile
+    if (pathname === '/api/account/me') {
+      const userData = verifyToken(request);
+      if (!userData) {
+        return NextResponse.json(
+          { success: false, error: 'Oturum açmanız gerekiyor' },
+          { status: 401 }
+        );
+      }
+
+      const { firstName, lastName, phone } = body;
+
+      // Validation
+      if (firstName !== undefined && firstName.length < 2) {
+        return NextResponse.json(
+          { success: false, error: 'Ad en az 2 karakter olmalıdır' },
+          { status: 400 }
+        );
+      }
+
+      if (lastName !== undefined && lastName.length < 2) {
+        return NextResponse.json(
+          { success: false, error: 'Soyad en az 2 karakter olmalıdır' },
+          { status: 400 }
+        );
+      }
+
+      // Phone format validation (Turkish format)
+      if (phone !== undefined && phone.length > 0) {
+        const phoneRegex = /^(\+90|0)?[5][0-9]{9}$/;
+        const cleanPhone = phone.replace(/\s/g, '');
+        if (!phoneRegex.test(cleanPhone)) {
+          return NextResponse.json(
+            { success: false, error: 'Geçersiz telefon numarası formatı' },
+            { status: 400 }
+          );
+        }
+      }
+
+      const updateData = { updatedAt: new Date() };
+      if (firstName !== undefined) updateData.firstName = firstName.trim();
+      if (lastName !== undefined) updateData.lastName = lastName.trim();
+      if (phone !== undefined) updateData.phone = phone.replace(/\s/g, '');
+
+      await db.collection('users').updateOne(
+        { id: userData.userId },
+        { $set: updateData }
+      );
+
+      const updatedUser = await db.collection('users').findOne({ id: userData.userId });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Profil güncellendi',
+        data: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          firstName: updatedUser.firstName || '',
+          lastName: updatedUser.lastName || '',
+          phone: updatedUser.phone || ''
+        }
+      });
+    }
+
+    // User: Change password
+    if (pathname === '/api/account/password') {
+      const userData = verifyToken(request);
+      if (!userData) {
+        return NextResponse.json(
+          { success: false, error: 'Oturum açmanız gerekiyor' },
+          { status: 401 }
+        );
+      }
+
+      const { currentPassword, newPassword, confirmPassword } = body;
+
+      // Validation
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return NextResponse.json(
+          { success: false, error: 'Tüm alanlar zorunludur' },
+          { status: 400 }
+        );
+      }
+
+      if (newPassword !== confirmPassword) {
+        return NextResponse.json(
+          { success: false, error: 'Yeni şifreler eşleşmiyor' },
+          { status: 400 }
+        );
+      }
+
+      if (newPassword.length < 8) {
+        return NextResponse.json(
+          { success: false, error: 'Yeni şifre en az 8 karakter olmalıdır' },
+          { status: 400 }
+        );
+      }
+
+      // Check for at least one letter and one number
+      const hasLetter = /[a-zA-Z]/.test(newPassword);
+      const hasNumber = /[0-9]/.test(newPassword);
+      if (!hasLetter || !hasNumber) {
+        return NextResponse.json(
+          { success: false, error: 'Şifre en az bir harf ve bir rakam içermelidir' },
+          { status: 400 }
+        );
+      }
+
+      // Get user and verify current password
+      const user = await db.collection('users').findOne({ id: userData.userId });
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Kullanıcı bulunamadı' },
+          { status: 404 }
+        );
+      }
+
+      const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+      if (!isValidPassword) {
+        return NextResponse.json(
+          { success: false, error: 'Mevcut şifre yanlış' },
+          { status: 400 }
+        );
+      }
+
+      // Hash new password and update
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await db.collection('users').updateOne(
+        { id: userData.userId },
+        { 
+          $set: { 
+            password: hashedPassword,
+            passwordChangedAt: new Date(),
+            updatedAt: new Date()
+          } 
+        }
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: 'Şifreniz başarıyla güncellendi'
+      });
+    }
+
     return NextResponse.json(
       { success: false, error: 'Endpoint bulunamadı' },
       { status: 404 }
