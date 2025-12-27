@@ -1,314 +1,147 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-
-const legalPages = {
-  'terms': {
-    title: 'Hizmet Şartları',
-    content: `# Hizmet Şartları
-
-Bu web sitesini kullanarak aşağıdaki şartları kabul etmiş sayılırsınız.
-
-## 1. Genel Koşullar
-
-Bu site üzerinden sunulan tüm hizmetler, yürürlükteki yasalara uygun olarak sunulmaktadır. Kullanıcılar, siteyi kullanırken tüm yasal düzenlemelere uymayı kabul ederler.
-
-## 2. Hizmet Kullanımı
-
-Sitemizdeki hizmetleri kullanabilmek için 18 yaşından büyük olmanız veya yasal vasi onayı almanız gerekmektedir.
-
-## 3. Ödeme Koşulları
-
-Tüm ödemeler güvenli ödeme altyapısı üzerinden gerçekleştirilir. Ödeme işlemi tamamlandıktan sonra siparişiniz işleme alınır.
-
-## 4. Teslimat
-
-Dijital ürünler, ödeme onayının ardından otomatik olarak teslim edilir.
-
-## 5. Değişiklikler
-
-Bu şartlar önceden haber verilmeksizin değiştirilebilir. Güncel şartları takip etmek kullanıcının sorumluluğundadır.
-
-Son güncelleme: Ocak 2025`
-  },
-  'user-agreement': {
-    title: 'Kullanıcı Sözleşmesi',
-    content: `# Kullanıcı Sözleşmesi
-
-Bu sözleşme, site ile kullanıcı arasındaki hak ve yükümlülükleri düzenler.
-
-## 1. Taraflar
-
-Bu sözleşme, web sitesi işletmecisi ve siteyi kullanan kullanıcı arasında yapılmıştır.
-
-## 2. Kullanıcı Yükümlülükleri
-
-- Doğru ve güncel bilgi vermek
-- Hesap güvenliğini sağlamak
-- Yasalara uygun hareket etmek
-- Başkalarının haklarına saygı göstermek
-
-## 3. Site Yükümlülükleri
-
-- Güvenli hizmet sunmak
-- Kişisel verileri korumak
-- Siparişleri zamanında teslim etmek
-- Müşteri desteği sağlamak
-
-## 4. Sözleşme Süresi
-
-Bu sözleşme, kullanıcının siteye üye olduğu andan itibaren geçerlidir.
-
-Son güncelleme: Ocak 2025`
-  },
-  'rules': {
-    title: 'Kurallar Politikası ve Davranış İlkeleri',
-    content: `# Kurallar Politikası ve Davranış İlkeleri
-
-Platformumuzu kullanan tüm kullanıcıların uyması gereken kurallar ve davranış ilkeleri aşağıda belirtilmiştir.
-
-## 1. Genel Kurallar
-
-- Yasalara uygun hareket edin
-- Diğer kullanıcılara saygılı olun
-- Spam ve yanıltıcı içerik paylaşmayın
-- Güvenlik açıklarını kötüye kullanmayın
-
-## 2. Hesap Kullanımı
-
-- Her kullanıcı tek bir hesap açabilir
-- Hesap bilgilerini başkalarıyla paylaşmayın
-- Şüpheli aktiviteleri bildirin
-
-## 3. Ödeme Kuralları
-
-- Sadece kendi adınıza ödeme yapın
-- Sahte veya çalıntı kart kullanmayın
-- Geri ödeme talepleri için müşteri hizmetleriyle iletişime geçin
-
-## 4. Yaptırımlar
-
-Kurallara uymayan kullanıcıların hesapları askıya alınabilir veya kapatılabilir.
-
-Son güncelleme: Ocak 2025`
-  },
-  'privacy': {
-    title: 'Gizlilik Politikası',
-    content: `# Gizlilik Politikası
-
-Kişisel verilerinizin korunması bizim için önemlidir. Bu politika, verilerinizi nasıl topladığımızı, kullandığımızı ve koruduğumuzu açıklar.
-
-## 1. Toplanan Veriler
-
-- Ad, soyad ve e-posta adresi
-- Ödeme bilgileri (güvenli şekilde işlenir)
-- IP adresi ve tarayıcı bilgileri
-- Sipariş geçmişi
-
-## 2. Verilerin Kullanımı
-
-Topladığımız veriler şu amaçlarla kullanılır:
-- Siparişlerinizi işlemek
-- Müşteri desteği sağlamak
-- Hizmetlerimizi geliştirmek
-- Yasal yükümlülükleri yerine getirmek
-
-## 3. Veri Güvenliği
-
-- SSL şifreleme kullanılır
-- Veriler güvenli sunucularda saklanır
-- Erişim yetkileri sınırlıdır
-
-## 4. Üçüncü Taraflar
-
-Verileriniz, yalnızca hizmet sunumu için gerekli olan üçüncü taraflarla (ödeme işlemcileri gibi) paylaşılır.
-
-## 5. Haklarınız
-
-Verilerinize erişim, düzeltme veya silme talep edebilirsiniz.
-
-Son güncelleme: Ocak 2025`
-  },
-  'cookies': {
-    title: 'Çerez Politikası',
-    content: `# Çerez Politikası
-
-Bu site, deneyiminizi geliştirmek için çerezler kullanmaktadır.
-
-## 1. Çerez Nedir?
-
-Çerezler, web sitelerinin tarayıcınıza kaydettiği küçük metin dosyalarıdır.
-
-## 2. Kullandığımız Çerezler
-
-### Zorunlu Çerezler
-- Oturum yönetimi
-- Güvenlik
-- Sepet işlemleri
-
-### Analitik Çerezler
-- Site kullanım istatistikleri
-- Performans ölçümü
-
-### Tercih Çerezleri
-- Dil tercihleri
-- Tema ayarları
-
-## 3. Çerez Yönetimi
-
-Tarayıcı ayarlarınızdan çerezleri devre dışı bırakabilirsiniz. Ancak bu, bazı site özelliklerinin çalışmamasına neden olabilir.
-
-## 4. Üçüncü Taraf Çerezleri
-
-Ödeme ve analitik hizmetleri için üçüncü taraf çerezleri kullanılabilir.
-
-Son güncelleme: Ocak 2025`
-  },
-  'kvkk': {
-    title: 'KVKK Aydınlatma Metni',
-    content: `# KVKK Aydınlatma Metni
-
-6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") kapsamında aydınlatma yükümlülüğümüzü yerine getirmek amacıyla bu metni hazırladık.
-
-## 1. Veri Sorumlusu
-
-Kişisel verileriniz, veri sorumlusu sıfatıyla şirketimiz tarafından işlenmektedir.
-
-## 2. İşlenen Kişisel Veriler
-
-- Kimlik bilgileri (ad, soyad)
-- İletişim bilgileri (e-posta, telefon)
-- Finansal bilgiler (ödeme bilgileri)
-- İşlem güvenliği bilgileri (IP adresi, log kayıtları)
-
-## 3. Veri İşleme Amaçları
-
-- Sözleşmesel yükümlülüklerin yerine getirilmesi
-- Müşteri ilişkileri yönetimi
-- Yasal yükümlülüklerin yerine getirilmesi
-- Güvenliğin sağlanması
-
-## 4. Veri İşleme Hukuki Sebepleri
-
-- Sözleşmenin ifası
-- Kanuni yükümlülük
-- Meşru menfaat
-
-## 5. Veri Aktarımı
-
-Kişisel verileriniz, yurt içindeki iş ortaklarımıza ve yasal mercilere aktarılabilir.
-
-## 6. Haklarınız
-
-KVKK'nın 11. maddesi kapsamında:
-- Kişisel verilerinizin işlenip işlenmediğini öğrenme
-- İşlenmişse bilgi talep etme
-- İşlenme amacını öğrenme
-- Yurt içinde/yurt dışında aktarıldığı üçüncü kişileri bilme
-- Eksik veya yanlış işlenmişse düzeltilmesini isteme
-- Silinmesini veya yok edilmesini isteme
-- Otomatik sistemlerle analiz sonucu aleyhe bir sonuç çıkmasına itiraz etme
-- Zarara uğramanız halinde zararın giderilmesini talep etme
-
-## 7. Başvuru
-
-Haklarınızı kullanmak için destek@site.com adresine başvurabilirsiniz.
-
-Son güncelleme: Ocak 2025`
-  },
-  'refund': {
-    title: 'İade Politikası',
-    content: `# İade Politikası
-
-Dijital ürünlerin iade koşulları aşağıda belirtilmiştir.
-
-## 1. Genel İade Kuralları
-
-Dijital ürünler, doğası gereği teslim edildikten sonra iade edilemez. Ancak aşağıdaki durumlarda iade yapılabilir:
-
-## 2. İade Yapılabilecek Durumlar
-
-- Ürün teslim edilmemişse
-- Teknik bir sorun nedeniyle ürün kullanılamıyorsa
-- Yanlış ürün gönderilmişse
-
-## 3. İade Süreci
-
-1. Müşteri hizmetleriyle iletişime geçin
-2. Sipariş numaranızı ve sorunu belirtin
-3. Ekibimiz durumu inceleyecektir
-4. Onaylanan iadeler 5-10 iş günü içinde hesabınıza yansır
-
-## 4. İade Yapılamayacak Durumlar
-
-- Ürün kullanıldıktan sonra
-- Sipariş tamamlandıktan 7 gün sonra
-- Kullanıcı hatası nedeniyle oluşan sorunlarda
-
-## 5. İletişim
-
-İade talepleriniz için: destek@site.com
-
-Son güncelleme: Ocak 2025`
-  },
-  'aml': {
-    title: 'Kara Paranın Aklanmasının Önlenmesi Politikası',
-    content: `# Kara Paranın Aklanmasının Önlenmesi Politikası
-
-Şirketimiz, kara para aklama ve terörün finansmanı ile mücadele konusunda yasal düzenlemelere tam uyum sağlamaktadır.
-
-## 1. Amaç
-
-Bu politika, kara para aklama ve terörün finansmanı faaliyetlerini önlemek amacıyla oluşturulmuştur.
-
-## 2. Yasal Çerçeve
-
-- 5549 sayılı Suç Gelirlerinin Aklanmasının Önlenmesi Hakkında Kanun
-- İlgili yönetmelikler ve tebliğler
-
-## 3. Müşteri Tanıma (KYC)
-
-- Müşteri kimlik doğrulaması yapılır
-- Risk değerlendirmesi yapılır
-- Şüpheli işlemler takip edilir
-
-## 4. İşlem İzleme
-
-- Olağandışı işlemler tespit edilir
-- Büyük tutarlı işlemler incelenir
-- Şüpheli aktiviteler raporlanır
-
-## 5. Raporlama
-
-Şüpheli işlemler, yetkili mercilere (MASAK) bildirilir.
-
-## 6. Eğitim
-
-Çalışanlarımız düzenli olarak AML eğitimi almaktadır.
-
-## 7. Kayıt Tutma
-
-Tüm işlem kayıtları yasal süre boyunca saklanır.
-
-Son güncelleme: Ocak 2025`
-  }
-};
+import { ArrowLeft, Home, ChevronRight, Calendar, Clock } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LegalPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params.slug;
   
-  const page = legalPages[slug];
-  
+  const [page, setPage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [siteSettings, setSiteSettings] = useState(null);
+
+  useEffect(() => {
+    fetchPage();
+    fetchSiteSettings();
+  }, [slug]);
+
+  const fetchPage = async () => {
+    try {
+      const response = await fetch(`/api/legal/${slug}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setPage(data.data);
+      } else {
+        setPage(null);
+      }
+    } catch (error) {
+      console.error('Error fetching page:', error);
+      setPage(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSiteSettings = async () => {
+    try {
+      const response = await fetch('/api/site/settings');
+      const data = await response.json();
+      if (data.success) {
+        setSiteSettings(data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching site settings:', error);
+    }
+  };
+
+  // Render markdown content with premium styling
+  const renderContent = (content) => {
+    if (!content) return null;
+    
+    return content.split('\n').map((line, i) => {
+      // H1 - Main title (skip as we have hero)
+      if (line.startsWith('# ')) {
+        return null;
+      }
+      // H2 - Section headers
+      if (line.startsWith('## ')) {
+        return (
+          <h2 key={i} className="text-2xl font-bold text-white mt-12 mb-6 pb-3 border-b border-white/10">
+            {line.slice(3)}
+          </h2>
+        );
+      }
+      // H3 - Subsection headers
+      if (line.startsWith('### ')) {
+        return (
+          <h3 key={i} className="text-xl font-semibold text-white mt-8 mb-4">
+            {line.slice(4)}
+          </h3>
+        );
+      }
+      // List items
+      if (line.startsWith('- ')) {
+        return (
+          <li key={i} className="text-white/70 ml-6 mb-2 relative before:content-['•'] before:absolute before:-left-4 before:text-blue-400">
+            {line.slice(2)}
+          </li>
+        );
+      }
+      // Numbered list (1. 2. etc)
+      if (/^\d+\.\s/.test(line)) {
+        const num = line.match(/^(\d+)\./)[1];
+        const text = line.replace(/^\d+\.\s/, '');
+        return (
+          <li key={i} className="text-white/70 ml-6 mb-2 relative">
+            <span className="absolute -left-6 text-blue-400 font-semibold">{num}.</span>
+            {text}
+          </li>
+        );
+      }
+      // Horizontal rule
+      if (line === '---') {
+        return <hr key={i} className="border-white/10 my-8" />;
+      }
+      // Italic/Note text
+      if (line.startsWith('*') && line.endsWith('*') && line.length > 2) {
+        return (
+          <p key={i} className="text-white/40 italic text-sm mt-6 p-4 bg-white/5 rounded-lg border-l-4 border-blue-500/50">
+            {line.slice(1, -1)}
+          </p>
+        );
+      }
+      // Empty line
+      if (line.trim() === '') {
+        return <div key={i} className="h-4" />;
+      }
+      // Bold text handling
+      const processedLine = line.replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>');
+      // Regular paragraph
+      return (
+        <p 
+          key={i} 
+          className="text-white/70 mb-4 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: processedLine }}
+        />
+      );
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#12151a] flex items-center justify-center">
+        <div className="animate-pulse text-white/60">Yükleniyor...</div>
+      </div>
+    );
+  }
+
   if (!page) {
     return (
       <div className="min-h-screen bg-[#12151a] flex items-center justify-center">
         <div className="text-center">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-500/10 flex items-center justify-center">
+            <span className="text-4xl">📄</span>
+          </div>
           <h1 className="text-2xl font-bold text-white mb-4">Sayfa Bulunamadı</h1>
+          <p className="text-white/60 mb-6">Aradığınız sayfa mevcut değil veya kaldırılmış olabilir.</p>
           <Button onClick={() => router.push('/')} className="bg-blue-600 hover:bg-blue-700">
+            <Home className="w-4 h-4 mr-2" />
             Ana Sayfaya Dön
           </Button>
         </div>
@@ -316,55 +149,102 @@ export default function LegalPage() {
     );
   }
 
-  // Simple markdown-like rendering
-  const renderContent = (content) => {
-    return content.split('\n').map((line, i) => {
-      if (line.startsWith('# ')) {
-        return <h1 key={i} className="text-3xl font-bold text-white mt-8 mb-4">{line.slice(2)}</h1>;
-      }
-      if (line.startsWith('## ')) {
-        return <h2 key={i} className="text-xl font-semibold text-white mt-6 mb-3">{line.slice(3)}</h2>;
-      }
-      if (line.startsWith('### ')) {
-        return <h3 key={i} className="text-lg font-medium text-white mt-4 mb-2">{line.slice(4)}</h3>;
-      }
-      if (line.startsWith('- ')) {
-        return <li key={i} className="text-white/70 ml-4 mb-1">{line.slice(2)}</li>;
-      }
-      if (line.trim() === '') {
-        return <br key={i} />;
-      }
-      return <p key={i} className="text-white/70 mb-2">{line}</p>;
-    });
-  };
-
   return (
     <div className="min-h-screen bg-[#12151a]">
-      {/* Header */}
-      <header className="bg-[#1e2229] border-b border-white/10">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.push('/')}
-            className="text-white/70 hover:text-white"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Ana Sayfa
-          </Button>
+      {/* Hero Section */}
+      <div className="relative">
+        {/* Background with blur */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div 
+            className="absolute inset-0 bg-cover bg-center"
+            style={{
+              backgroundImage: siteSettings?.heroImage 
+                ? `url(${siteSettings.heroImage})`
+                : 'url(https://customer-assets.emergentagent.com/job_8b265523-4875-46c8-ab48-988eea2d3777/artifacts/prqvfd8b_wp5153882-pubg-fighting-wallpapers.jpg)',
+              filter: 'blur(8px)',
+              transform: 'scale(1.1)'
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/80 to-[#12151a]" />
         </div>
-      </header>
 
-      {/* Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-[#1e2229] rounded-xl p-6 md:p-10">
-          {renderContent(page.content)}
+        {/* Content */}
+        <div className="relative z-10">
+          {/* Top Navigation */}
+          <div className="max-w-6xl mx-auto px-4 py-4">
+            <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-white transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Ana Sayfa</span>
+            </Link>
+          </div>
+
+          {/* Hero Content */}
+          <div className="max-w-6xl mx-auto px-4 py-16 md:py-24">
+            {/* Breadcrumb */}
+            <nav className="flex items-center gap-2 text-sm mb-8">
+              <Link href="/" className="text-white/50 hover:text-white transition-colors">
+                Anasayfa
+              </Link>
+              <ChevronRight className="w-4 h-4 text-white/30" />
+              <span className="text-white/50">Kurumsal/Künye</span>
+              <ChevronRight className="w-4 h-4 text-white/30" />
+              <span className="text-blue-400">{page.title}</span>
+            </nav>
+
+            {/* Title */}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6">
+              {page.title}
+            </h1>
+
+            {/* Meta Info */}
+            <div className="flex flex-wrap items-center gap-6 text-sm text-white/50">
+              {page.effectiveDate && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>Yürürlük Tarihi: {new Date(page.effectiveDate).toLocaleDateString('tr-TR', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}</span>
+                </div>
+              )}
+              {page.updatedAt && (
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span>Son Güncelleme: {new Date(page.updatedAt).toLocaleDateString('tr-TR', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </main>
+      </div>
+
+      {/* Content Section */}
+      <div className="relative z-10 -mt-8">
+        <div className="max-w-4xl mx-auto px-4 pb-16">
+          <div className="bg-[#1e2229] rounded-2xl border border-white/10 p-8 md:p-12 shadow-2xl">
+            <article className="prose prose-invert max-w-none">
+              {renderContent(page.content)}
+            </article>
+          </div>
+        </div>
+      </div>
 
       {/* Simple Footer */}
-      <footer className="py-8 border-t border-white/5">
-        <div className="max-w-4xl mx-auto px-4 text-center text-white/30 text-sm">
-          © 2025 PUBG UC Store. Tüm hakları saklıdır.
+      <footer className="border-t border-white/10 py-8">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <Link href="/" className="text-white/60 hover:text-white transition-colors">
+              ← Ana Sayfaya Dön
+            </Link>
+            <p className="text-white/30 text-sm">
+              © 2025 PUBG UC Store. Tüm hakları saklıdır.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
