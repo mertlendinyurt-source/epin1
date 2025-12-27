@@ -51,6 +51,10 @@ export default function AuthModal({ open, onClose, onSuccess, defaultTab = 'regi
   });
 
   const handleGoogleLogin = () => {
+    if (!googleEnabled) {
+      toast.error('Google ile giriş şu an aktif değil. Admin panelden etkinleştirin.');
+      return;
+    }
     setGoogleLoading(true);
     // Redirect to Google OAuth endpoint
     window.location.href = '/api/auth/google';
