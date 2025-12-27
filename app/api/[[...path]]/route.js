@@ -2466,7 +2466,42 @@ export async function POST(request) {
         );
       }
 
-      const { logo, favicon, heroImage, categoryIcon } = body;
+      const { logo, favicon, heroImage, categoryIcon, siteName, metaTitle, metaDescription, contactEmail, contactPhone } = body;
+
+      // Validation
+      if (siteName !== undefined && (!siteName || siteName.trim().length === 0)) {
+        return NextResponse.json(
+          { success: false, error: 'Site adı boş olamaz' },
+          { status: 400 }
+        );
+      }
+
+      if (metaTitle && metaTitle.length > 70) {
+        return NextResponse.json(
+          { success: false, error: 'META başlık en fazla 70 karakter olabilir' },
+          { status: 400 }
+        );
+      }
+
+      if (metaDescription && metaDescription.length > 160) {
+        return NextResponse.json(
+          { success: false, error: 'META açıklama en fazla 160 karakter olabilir' },
+          { status: 400 }
+        );
+      }
+
+      if (contactEmail && contactEmail.length > 0) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(contactEmail)) {
+          return NextResponse.json(
+            { success: false, error: 'Geçersiz e-posta adresi' },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Get existing settings
+      const existingSettings = await db.collection('site_settings').findOne({ active: true });
 
       // Deactivate previous settings
       await db.collection('site_settings').updateMany(
@@ -2474,16 +2509,21 @@ export async function POST(request) {
         { $set: { active: false } }
       );
 
-      // Create new settings
+      // Create new settings (merge with existing)
       const settings = {
-        logo,
-        favicon,
-        heroImage,
-        categoryIcon,
+        logo: logo !== undefined ? logo : existingSettings?.logo || null,
+        favicon: favicon !== undefined ? favicon : existingSettings?.favicon || null,
+        heroImage: heroImage !== undefined ? heroImage : existingSettings?.heroImage || null,
+        categoryIcon: categoryIcon !== undefined ? categoryIcon : existingSettings?.categoryIcon || null,
+        siteName: siteName !== undefined ? siteName.trim() : existingSettings?.siteName || 'PUBG UC Store',
+        metaTitle: metaTitle !== undefined ? metaTitle.trim() : existingSettings?.metaTitle || '',
+        metaDescription: metaDescription !== undefined ? metaDescription.trim() : existingSettings?.metaDescription || '',
+        contactEmail: contactEmail !== undefined ? contactEmail.trim() : existingSettings?.contactEmail || '',
+        contactPhone: contactPhone !== undefined ? contactPhone.trim() : existingSettings?.contactPhone || '',
         active: true,
         updatedBy: user.username,
         updatedAt: new Date(),
-        createdAt: new Date()
+        createdAt: existingSettings?.createdAt || new Date()
       };
 
       await db.collection('site_settings').insertOne(settings);
