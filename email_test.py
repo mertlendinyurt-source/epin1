@@ -226,7 +226,8 @@ def test_email_logs_get_authorized(admin_token):
 def test_email_test_unauthorized():
     """Test POST /api/admin/email/test without admin auth"""
     try:
-        response = requests.post(f"{BASE_URL}/api/admin/email/test")
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(f"{BASE_URL}/api/admin/email/test", headers=headers, json={})
         
         if response.status_code == 401:
             log_test("Test Email POST (Unauthorized)", "PASS", "Correctly rejected unauthorized access")
