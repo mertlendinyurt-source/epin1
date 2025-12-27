@@ -22,7 +22,10 @@ export default function SiteSettingsPage() {
     metaTitle: '',
     metaDescription: '',
     contactEmail: '',
-    contactPhone: ''
+    contactPhone: '',
+    dailyBannerEnabled: true,
+    dailyBannerTitle: 'Bugüne Özel Fiyatlar',
+    dailyBannerSubtitle: ''
   });
   const [uploads, setUploads] = useState({ logo: null, favicon: null, heroImage: null, categoryIcon: null });
   const [previews, setPreviews] = useState({ logo: null, favicon: null, heroImage: null, categoryIcon: null });
