@@ -11,6 +11,237 @@ const MONGO_URL = process.env.MONGO_URL;
 const DB_NAME = process.env.DB_NAME || 'pubg_uc_store';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const APP_VERSION = '1.0.0';
+
+// ============================================
+// RATE LIMITING CONFIG
+// ============================================
+const RATE_LIMITS = {
+  '/api/auth/login': { limit: 5, windowMs: 60000, keyType: 'ip' },
+  '/api/auth/register': { limit: 3, windowMs: 60000, keyType: 'ip' },
+  '/api/orders': { limit: 10, windowMs: 60000, keyType: 'ip+user' },
+  '/api/player/resolve': { limit: 30, windowMs: 60000, keyType: 'ip' },
+  '/api/support': { limit: 10, windowMs: 60000, keyType: 'user' },
+  '/api/admin': { limit: 60, windowMs: 60000, keyType: 'user' },
+};
+
+// Brute force config
+const BRUTE_FORCE_CONFIG = {
+  user: { maxAttempts: 5, lockoutMs: 10 * 60 * 1000 }, // 5 fails -> 10 min lockout
+  admin: { maxAttempts: 3, lockoutMs: 30 * 60 * 1000 }, // 3 fails -> 30 min lockout
+};
+
+// In-memory rate limit store (will be moved to Redis in production)
+const rateLimitStore = new Map();
+const bruteForceStore = new Map();
+
+// ============================================
+// RATE LIMITING FUNCTIONS
+// ============================================
+function getClientIP(request) {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+  return request.headers.get('x-real-ip') || 'unknown';
+}
+
+function getRateLimitKey(pathname, request, user = null) {
+  const ip = getClientIP(request);
+  
+  // Find matching rate limit config
+  let config = null;
+  for (const [path, cfg] of Object.entries(RATE_LIMITS)) {
+    if (pathname.startsWith(path)) {
+      config = cfg;
+      break;
+    }
+  }
+  
+  if (!config) return null;
+  
+  let key = pathname;
+  if (config.keyType === 'ip') {
+    key = `${pathname}:ip:${ip}`;
+  } else if (config.keyType === 'user' && user) {
+    key = `${pathname}:user:${user.id}`;
+  } else if (config.keyType === 'ip+user') {
+    key = user ? `${pathname}:user:${user.id}` : `${pathname}:ip:${ip}`;
+  } else {
+    key = `${pathname}:ip:${ip}`;
+  }
+  
+  return { key, config };
+}
+
+function checkRateLimit(pathname, request, user = null) {
+  const result = getRateLimitKey(pathname, request, user);
+  if (!result) return { allowed: true };
+  
+  const { key, config } = result;
+  const now = Date.now();
+  
+  let entry = rateLimitStore.get(key);
+  
+  if (!entry || now - entry.windowStart >= config.windowMs) {
+    // Start new window
+    entry = { count: 1, windowStart: now };
+    rateLimitStore.set(key, entry);
+    return { allowed: true, remaining: config.limit - 1 };
+  }
+  
+  entry.count++;
+  
+  if (entry.count > config.limit) {
+    const retryAfter = Math.ceil((entry.windowStart + config.windowMs - now) / 1000);
+    return { allowed: false, retryAfter, remaining: 0 };
+  }
+  
+  return { allowed: true, remaining: config.limit - entry.count };
+}
+
+// ============================================
+// BRUTE FORCE PROTECTION
+// ============================================
+function getBruteForceKey(email, ip, isAdmin = false) {
+  return `${isAdmin ? 'admin' : 'user'}:${email}:${ip}`;
+}
+
+function checkBruteForce(email, ip, isAdmin = false) {
+  const key = getBruteForceKey(email, ip, isAdmin);
+  const config = isAdmin ? BRUTE_FORCE_CONFIG.admin : BRUTE_FORCE_CONFIG.user;
+  const entry = bruteForceStore.get(key);
+  
+  if (!entry) return { allowed: true };
+  
+  const now = Date.now();
+  
+  // Check if lockout expired
+  if (entry.lockedUntil && now < entry.lockedUntil) {
+    const retryAfter = Math.ceil((entry.lockedUntil - now) / 1000);
+    return { allowed: false, locked: true, retryAfter };
+  }
+  
+  // Reset if lockout expired
+  if (entry.lockedUntil && now >= entry.lockedUntil) {
+    bruteForceStore.delete(key);
+    return { allowed: true };
+  }
+  
+  return { allowed: true };
+}
+
+function recordFailedLogin(email, ip, isAdmin = false) {
+  const key = getBruteForceKey(email, ip, isAdmin);
+  const config = isAdmin ? BRUTE_FORCE_CONFIG.admin : BRUTE_FORCE_CONFIG.user;
+  const now = Date.now();
+  
+  let entry = bruteForceStore.get(key) || { attempts: 0, firstAttempt: now };
+  
+  // Reset if window expired (2x lockout time)
+  if (now - entry.firstAttempt > config.lockoutMs * 2) {
+    entry = { attempts: 0, firstAttempt: now };
+  }
+  
+  entry.attempts++;
+  
+  if (entry.attempts >= config.maxAttempts) {
+    entry.lockedUntil = now + config.lockoutMs;
+  }
+  
+  bruteForceStore.set(key, entry);
+  return entry;
+}
+
+function clearBruteForce(email, ip, isAdmin = false) {
+  const key = getBruteForceKey(email, ip, isAdmin);
+  bruteForceStore.delete(key);
+}
+
+// ============================================
+// AUDIT LOG FUNCTIONS
+// ============================================
+async function logAuditAction(db, action, actorId, entityType, entityId, request, meta = {}) {
+  try {
+    const auditLog = {
+      id: uuidv4(),
+      action,
+      actorId,
+      entityType,
+      entityId,
+      ip: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || 'unknown',
+      meta,
+      createdAt: new Date()
+    };
+    
+    await db.collection('audit_logs').insertOne(auditLog);
+    return auditLog;
+  } catch (error) {
+    console.error('Failed to log audit action:', error);
+    return null;
+  }
+}
+
+// Audit action types
+const AUDIT_ACTIONS = {
+  PRODUCT_CREATE: 'product.create',
+  PRODUCT_UPDATE: 'product.update',
+  PRODUCT_DELETE: 'product.delete',
+  STOCK_ADD: 'stock.add',
+  STOCK_ASSIGN: 'stock.assign',
+  ORDER_STATUS_CHANGE: 'order.status_change',
+  SITE_SETTINGS_UPDATE: 'settings.site_update',
+  OAUTH_SETTINGS_UPDATE: 'settings.oauth_update',
+  PAYMENT_SETTINGS_UPDATE: 'settings.payment_update',
+  EMAIL_SETTINGS_UPDATE: 'settings.email_update',
+  USER_CREATE: 'user.create',
+  USER_LOGIN: 'user.login',
+  USER_LOGIN_FAILED: 'user.login_failed',
+  ADMIN_LOGIN: 'admin.login',
+  ADMIN_LOGIN_FAILED: 'admin.login_failed',
+  TICKET_CREATE: 'ticket.create',
+  TICKET_REPLY: 'ticket.reply',
+  TICKET_CLOSE: 'ticket.close',
+};
+
+// ============================================
+// INPUT VALIDATION HELPERS
+// ============================================
+function sanitizeString(str) {
+  if (typeof str !== 'string') return str;
+  // Remove MongoDB operators
+  return str.replace(/\$|\./g, '');
+}
+
+function sanitizeObject(obj) {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  
+  const sanitized = Array.isArray(obj) ? [] : {};
+  
+  for (const [key, value] of Object.entries(obj)) {
+    const sanitizedKey = sanitizeString(key);
+    if (typeof value === 'object' && value !== null) {
+      sanitized[sanitizedKey] = sanitizeObject(value);
+    } else if (typeof value === 'string') {
+      sanitized[sanitizedKey] = sanitizeString(value);
+    } else {
+      sanitized[sanitizedKey] = value;
+    }
+  }
+  
+  return sanitized;
+}
+
+function validateEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function validatePhone(phone) {
+  const phoneRegex = /^[0-9]{10,15}$/;
+  return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+}
 
 // ============================================
 // EMAIL SERVICE
