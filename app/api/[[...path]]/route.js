@@ -931,6 +931,9 @@ export async function GET(request) {
           metaDescription: 'PUBG Mobile UC satın al. Güvenilir, hızlı ve uygun fiyatlı UC satış platformu.',
           contactEmail: '',
           contactPhone: '',
+          dailyBannerEnabled: true,
+          dailyBannerTitle: 'Bugüne Özel Fiyatlar',
+          dailyBannerSubtitle: '',
           active: true
         }
       });
