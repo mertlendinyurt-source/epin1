@@ -2486,7 +2486,7 @@ export async function POST(request) {
         );
       }
 
-      const { logo, favicon, heroImage, categoryIcon, siteName, metaTitle, metaDescription, contactEmail, contactPhone } = body;
+      const { logo, favicon, heroImage, categoryIcon, siteName, metaTitle, metaDescription, contactEmail, contactPhone, dailyBannerEnabled, dailyBannerTitle, dailyBannerSubtitle } = body;
 
       // Validation
       if (siteName !== undefined && (!siteName || siteName.trim().length === 0)) {
@@ -2540,6 +2540,9 @@ export async function POST(request) {
         metaDescription: metaDescription !== undefined ? metaDescription.trim() : existingSettings?.metaDescription || '',
         contactEmail: contactEmail !== undefined ? contactEmail.trim() : existingSettings?.contactEmail || '',
         contactPhone: contactPhone !== undefined ? contactPhone.trim() : existingSettings?.contactPhone || '',
+        dailyBannerEnabled: dailyBannerEnabled !== undefined ? dailyBannerEnabled : existingSettings?.dailyBannerEnabled !== false,
+        dailyBannerTitle: dailyBannerTitle !== undefined ? dailyBannerTitle.trim() : existingSettings?.dailyBannerTitle || 'Bugüne Özel Fiyatlar',
+        dailyBannerSubtitle: dailyBannerSubtitle !== undefined ? dailyBannerSubtitle.trim() : existingSettings?.dailyBannerSubtitle || '',
         active: true,
         updatedBy: user.username,
         updatedAt: new Date(),
