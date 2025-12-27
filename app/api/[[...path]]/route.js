@@ -494,6 +494,43 @@ export async function GET(request) {
       });
     }
 
+    // Admin: Get site settings
+    if (pathname === '/api/admin/settings/site') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const settings = await db.collection('site_settings').findOne({ active: true });
+      
+      return NextResponse.json({
+        success: true,
+        data: settings || {
+          logo: null,
+          favicon: null,
+          heroImage: null,
+          active: true
+        }
+      });
+    }
+
+    // Public: Get site settings (for frontend)
+    if (pathname === '/api/site/settings') {
+      const settings = await db.collection('site_settings').findOne({ active: true });
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          logo: settings?.logo || null,
+          favicon: settings?.favicon || null,
+          heroImage: settings?.heroImage || null
+        }
+      });
+    }
+
     return NextResponse.json(
       { success: false, error: 'Endpoint bulunamadı' },
       { status: 404 }
