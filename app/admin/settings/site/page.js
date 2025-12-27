@@ -27,12 +27,11 @@ export default function SiteSettingsPage() {
     heroImage: null,
     categoryIcon: null
   });
-    favicon: null,
-    heroImage: null
-  });
 
   useEffect(() => {
     checkAuth();
+    loadSettings();
+  }, []);
     loadSettings();
   }, []);
 
