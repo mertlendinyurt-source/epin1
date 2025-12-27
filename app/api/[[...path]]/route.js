@@ -2894,6 +2894,115 @@ export async function POST(request) {
       });
     }
 
+    // ============================================
+    // GOOGLE OAUTH ADMIN ENDPOINTS
+    // ============================================
+
+    // Admin: Get Google OAuth Settings
+    if (pathname === '/api/admin/settings/oauth/google') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const oauthSettings = await db.collection('oauth_settings').findOne({ provider: 'google' });
+      
+      // Get site base URL for display
+      const siteSettings = await db.collection('site_settings').findOne({ active: true });
+      const baseUrl = siteSettings?.baseUrl || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          enabled: oauthSettings?.enabled || false,
+          clientId: oauthSettings?.clientId ? maskSensitiveData(decrypt(oauthSettings.clientId)) : '',
+          clientSecret: oauthSettings?.clientSecret ? '••••••••' : '',
+          hasClientId: !!oauthSettings?.clientId,
+          hasClientSecret: !!oauthSettings?.clientSecret,
+          baseUrl: baseUrl,
+          redirectUri: `${baseUrl}/api/auth/google/callback`,
+          authorizedOrigin: baseUrl,
+          updatedBy: oauthSettings?.updatedBy || null,
+          updatedAt: oauthSettings?.updatedAt || null
+        }
+      });
+    }
+
+    // Admin: Save Google OAuth Settings
+    if (pathname === '/api/admin/settings/oauth/google' && request.method === 'POST') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const { enabled, clientId, clientSecret } = body;
+
+      // Get existing settings
+      const existingSettings = await db.collection('oauth_settings').findOne({ provider: 'google' });
+
+      // Prepare update data
+      const updateData = {
+        provider: 'google',
+        enabled: enabled === true,
+        updatedBy: user.username,
+        updatedAt: new Date()
+      };
+
+      // Only update clientId if provided and not masked
+      if (clientId && !clientId.includes('*')) {
+        updateData.clientId = encrypt(clientId.trim());
+      } else if (existingSettings?.clientId) {
+        updateData.clientId = existingSettings.clientId;
+      }
+
+      // Only update clientSecret if provided and not masked
+      if (clientSecret && clientSecret !== '••••••••' && !clientSecret.includes('•')) {
+        updateData.clientSecret = encrypt(clientSecret.trim());
+      } else if (existingSettings?.clientSecret) {
+        updateData.clientSecret = existingSettings.clientSecret;
+      }
+
+      // Validation: If enabling, must have both clientId and clientSecret
+      if (updateData.enabled && (!updateData.clientId || !updateData.clientSecret)) {
+        return NextResponse.json(
+          { success: false, error: 'Google OAuth aktif etmek için Client ID ve Client Secret gereklidir' },
+          { status: 400 }
+        );
+      }
+
+      // Upsert the settings
+      await db.collection('oauth_settings').updateOne(
+        { provider: 'google' },
+        { 
+          $set: updateData,
+          $setOnInsert: { createdAt: new Date() }
+        },
+        { upsert: true }
+      );
+
+      // Log the action (audit)
+      await db.collection('admin_logs').insertOne({
+        id: uuidv4(),
+        action: 'oauth_settings_update',
+        provider: 'google',
+        enabled: updateData.enabled,
+        updatedBy: user.username,
+        ip: request.headers.get('x-forwarded-for') || 'unknown',
+        createdAt: new Date()
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Google OAuth ayarları güncellendi'
+      });
+    }
+
     // Admin: Save game content
     if (pathname === '/api/admin/content/pubg') {
       const user = verifyAdminToken(request);
