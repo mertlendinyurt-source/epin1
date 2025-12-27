@@ -891,15 +891,30 @@ frontend:
 
   - task: "Daily Countdown Timer on Banner"
     implemented: true
-    working: "NA"
+    working: true
     file: "app/page.js, app/admin/settings/site/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Daily countdown timer added to 'Bugüne Özel Fiyatlar' banner. Features: (1) Countdown calculates time to 23:59:59, (2) Updates every second with setInterval, (3) Auto-reset at midnight, (4) Tab visibility handling recalculates on tab focus, (5) Premium monospace font with neon glow, (6) Color changes: cyan (normal) → orange (<10min) → red (<5min), (7) Admin panel settings: dailyCountdownEnabled (on/off), dailyCountdownLabel text, (8) Backend API updated with new fields, (9) Responsive design for mobile. Needs UI testing."
+      - working: true
+        agent: "main"
+        comment: "Countdown verified working via screenshot. Banner shows 01:42:42 countdown with cyan glow effect."
+
+  - task: "Google OAuth 2.0 Integration"
+    implemented: true
+    working: "NA"
+    file: "app/api/auth/google/route.js, app/api/auth/google/callback/route.js, app/admin/settings/oauth/page.js, components/AuthModal.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: true
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Daily countdown timer added to 'Bugüne Özel Fiyatlar' banner. Features: (1) Countdown calculates time to 23:59:59, (2) Updates every second with setInterval, (3) Auto-reset at midnight, (4) Tab visibility handling recalculates on tab focus, (5) Premium monospace font with neon glow, (6) Color changes: cyan (normal) → orange (<10min) → red (<5min), (7) Admin panel settings: dailyCountdownEnabled (on/off), dailyCountdownLabel text, (8) Backend API updated with new fields, (9) Responsive design for mobile. Needs UI testing."
+        comment: "Google OAuth 2.0 fully implemented. Features: (1) oauth_settings collection with AES-256-GCM encrypted credentials, (2) Admin API endpoints GET/POST /api/admin/settings/oauth/google with masked responses, (3) Admin Panel UI at /admin/settings/oauth with Client ID/Secret inputs, enable toggle, copy buttons for redirect URI/origin, (4) /api/auth/google initiates OAuth flow with CSRF state protection, (5) /api/auth/google/callback handles token exchange and user creation/linking, (6) AuthModal updated with 'Google ile devam et' button (shown only when enabled), (7) Main page handles OAuth callback via cookies, (8) User model extended with googleId, avatarUrl, authProvider fields. Ready for testing with real Google credentials."
 
 metadata:
   created_by: "testing_agent"
