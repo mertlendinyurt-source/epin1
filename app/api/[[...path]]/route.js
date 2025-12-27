@@ -864,6 +864,7 @@ export async function POST(request) {
         userId: user.id, // Link order to user
         productId,
         productTitle: product.title,
+        productImageUrl: product.imageUrl || null, // Store product image for order display
         playerId,
         playerName,
         customer: customerSnapshot, // Store customer info snapshot
