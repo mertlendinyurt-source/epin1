@@ -1824,6 +1824,9 @@ export async function POST(request) {
 
       await db.collection('users').insertOne(user);
 
+      // Send welcome email (async, don't block response)
+      sendWelcomeEmail(db, user).catch(err => console.error('Welcome email failed:', err));
+
       // Generate JWT token
       const token = jwt.sign(
         { 
