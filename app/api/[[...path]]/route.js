@@ -867,8 +867,9 @@ PUBG Mobile, dünyanın en popüler battle royale oyunlarından biridir. Unknown
         );
       }
 
+      const userId = userData.id || userData.userId;
       const orders = await db.collection('orders')
-        .find({ userId: userData.userId })
+        .find({ userId })
         .sort({ createdAt: -1 })
         .limit(3)
         .toArray();
