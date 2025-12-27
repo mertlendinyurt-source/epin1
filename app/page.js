@@ -85,6 +85,26 @@ export default function App() {
   const [descriptionExpanded, setDescriptionExpanded] = useState(false)
   const [footerSettings, setFooterSettings] = useState(null)
   const [todayDate, setTodayDate] = useState('')
+  const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 })
+
+  // Calculate time remaining until midnight (end of day)
+  const calculateTimeToMidnight = () => {
+    const now = new Date()
+    const midnight = new Date(now)
+    midnight.setHours(23, 59, 59, 999)
+    
+    const diff = midnight.getTime() - now.getTime()
+    
+    if (diff <= 0) {
+      return { hours: 0, minutes: 0, seconds: 0 }
+    }
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+    
+    return { hours, minutes, seconds }
+  }
 
   useEffect(() => {
     fetchProducts()
@@ -101,6 +121,44 @@ export default function App() {
       month: 'long', 
       year: 'numeric' 
     }))
+
+    // Initialize countdown
+    setCountdown(calculateTimeToMidnight())
+
+    // Countdown interval - updates every second
+    const countdownInterval = setInterval(() => {
+      const newTime = calculateTimeToMidnight()
+      setCountdown(newTime)
+      
+      // Auto-reset date at midnight
+      if (newTime.hours === 0 && newTime.minutes === 0 && newTime.seconds === 0) {
+        setTimeout(() => {
+          setTodayDate(new Date().toLocaleDateString('tr-TR', { 
+            day: 'numeric', 
+            month: 'long', 
+            year: 'numeric' 
+          }))
+        }, 1000)
+      }
+    }, 1000)
+
+    // Handle visibility change - recalculate when tab becomes active
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setCountdown(calculateTimeToMidnight())
+        setTodayDate(new Date().toLocaleDateString('tr-TR', { 
+          day: 'numeric', 
+          month: 'long', 
+          year: 'numeric' 
+        }))
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(countdownInterval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
   }, [])
 
   const fetchFooterSettings = async () => {
