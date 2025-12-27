@@ -2489,7 +2489,7 @@ export async function POST(request) {
         );
       }
 
-      const { logo, favicon, heroImage, categoryIcon, siteName, metaTitle, metaDescription, contactEmail, contactPhone, dailyBannerEnabled, dailyBannerTitle, dailyBannerSubtitle } = body;
+      const { logo, favicon, heroImage, categoryIcon, siteName, metaTitle, metaDescription, contactEmail, contactPhone, dailyBannerEnabled, dailyBannerTitle, dailyBannerSubtitle, dailyBannerIcon } = body;
 
       // Validation
       if (siteName !== undefined && (!siteName || siteName.trim().length === 0)) {
