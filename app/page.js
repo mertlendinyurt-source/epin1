@@ -24,6 +24,7 @@ export default function App() {
   const [orderProcessing, setOrderProcessing] = useState(false)
   const [playerIdError, setPlayerIdError] = useState('')
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [authModalTab, setAuthModalTab] = useState('register')
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [siteSettings, setSiteSettings] = useState(null)
   const [regions, setRegions] = useState([])
