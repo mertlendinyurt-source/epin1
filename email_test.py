@@ -322,7 +322,7 @@ def test_password_change_email_trigger(user_token, user_id, admin_token):
     try:
         # Change user password
         headers = {"Authorization": f"Bearer {user_token}"}
-        response = requests.post(f"{BASE_URL}/api/account/password", 
+        response = requests.put(f"{BASE_URL}/api/account/password", 
                                headers=headers, 
                                json={
                                    "currentPassword": "testpass123",
