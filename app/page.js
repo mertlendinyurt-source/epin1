@@ -162,6 +162,73 @@ export default function App() {
     }
   }, [])
 
+  // Handle Google OAuth callback - read cookies and save to localStorage
+  const handleGoogleAuthCallback = () => {
+    // Check URL for google_auth success
+    const urlParams = new URLSearchParams(window.location.search)
+    const googleAuthStatus = urlParams.get('google_auth')
+    const errorParam = urlParams.get('error')
+    
+    // Handle errors
+    if (errorParam) {
+      const errorMessages = {
+        'oauth_disabled': 'Google ile giriş şu an kullanılamıyor',
+        'oauth_not_configured': 'Google OAuth yapılandırılmamış',
+        'oauth_config_error': 'OAuth yapılandırma hatası',
+        'google_auth_denied': 'Google girişi reddedildi',
+        'invalid_callback': 'Geçersiz geri dönüş',
+        'invalid_state': 'Güvenlik doğrulaması başarısız',
+        'token_exchange_failed': 'Token alınamadı',
+        'user_info_failed': 'Kullanıcı bilgisi alınamadı',
+        'oauth_callback_error': 'Giriş işlemi başarısız'
+      }
+      const message = errorMessages[errorParam] || 'Giriş sırasında bir hata oluştu'
+      toast.error(message)
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname)
+      return
+    }
+    
+    // Handle successful Google auth
+    if (googleAuthStatus === 'success') {
+      // Read token from cookie
+      const getCookie = (name) => {
+        const value = `; ${document.cookie}`
+        const parts = value.split(`; ${name}=`)
+        if (parts.length === 2) return parts.pop().split(';').shift()
+        return null
+      }
+      
+      const token = getCookie('googleAuthToken')
+      const userDataEncoded = getCookie('googleAuthUser')
+      
+      if (token && userDataEncoded) {
+        try {
+          const userData = JSON.parse(decodeURIComponent(userDataEncoded))
+          
+          // Save to localStorage
+          localStorage.setItem('userToken', token)
+          localStorage.setItem('userData', JSON.stringify(userData))
+          
+          // Update state
+          setUser(userData)
+          
+          // Show success message
+          toast.success('Google ile giriş başarılı!')
+          
+          // Clear cookies
+          document.cookie = 'googleAuthToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+          document.cookie = 'googleAuthUser=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+        } catch (error) {
+          console.error('Error parsing Google auth data:', error)
+        }
+      }
+      
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }
+
   const fetchFooterSettings = async () => {
     try {
       const response = await fetch('/api/footer-settings')
