@@ -2495,7 +2495,7 @@ export async function POST(request) {
         );
       }
 
-      const { logo, favicon, heroImage, categoryIcon, siteName, metaTitle, metaDescription, contactEmail, contactPhone, dailyBannerEnabled, dailyBannerTitle, dailyBannerSubtitle, dailyBannerIcon } = body;
+      const { logo, favicon, heroImage, categoryIcon, siteName, metaTitle, metaDescription, contactEmail, contactPhone, dailyBannerEnabled, dailyBannerTitle, dailyBannerSubtitle, dailyBannerIcon, dailyCountdownEnabled, dailyCountdownLabel } = body;
 
       // Validation
       if (siteName !== undefined && (!siteName || siteName.trim().length === 0)) {
@@ -2553,6 +2553,8 @@ export async function POST(request) {
         dailyBannerTitle: dailyBannerTitle !== undefined ? dailyBannerTitle.trim() : existingSettings?.dailyBannerTitle || 'Bugüne Özel Fiyatlar',
         dailyBannerSubtitle: dailyBannerSubtitle !== undefined ? dailyBannerSubtitle.trim() : existingSettings?.dailyBannerSubtitle || '',
         dailyBannerIcon: dailyBannerIcon !== undefined ? dailyBannerIcon.trim() : existingSettings?.dailyBannerIcon || 'fire',
+        dailyCountdownEnabled: dailyCountdownEnabled !== undefined ? dailyCountdownEnabled : existingSettings?.dailyCountdownEnabled !== false,
+        dailyCountdownLabel: dailyCountdownLabel !== undefined ? dailyCountdownLabel.trim() : existingSettings?.dailyCountdownLabel || 'Kampanya bitimine',
         active: true,
         updatedBy: user.username,
         updatedAt: new Date(),
