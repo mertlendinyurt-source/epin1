@@ -10,10 +10,10 @@ export default function PaymentSettingsPage() {
   const [settings, setSettings] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState('success'); // 'success' or 'error'
+  const [toastType, setToastType] = useState('success');
+  const [baseUrl, setBaseUrl] = useState('');
 
   const [formData, setFormData] = useState({
-    merchantId: '',
     apiKey: '',
     apiSecret: '',
     mode: 'production'
@@ -22,6 +22,8 @@ export default function PaymentSettingsPage() {
   useEffect(() => {
     checkAuth();
     loadSettings();
+    // Get base URL for callback display
+    setBaseUrl(window.location.origin);
   }, []);
 
   const checkAuth = () => {
@@ -48,7 +50,6 @@ export default function PaymentSettingsPage() {
       const result = await response.json();
       if (result.success) {
         setSettings(result.data);
-        // Don't populate form with masked values - let user enter new values
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
@@ -60,9 +61,9 @@ export default function PaymentSettingsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate all fields
-    if (!formData.merchantId || !formData.apiKey || !formData.apiSecret) {
-      toast('Tüm alanları doldurun', 'error');
+    // Validate fields
+    if (!formData.apiKey || !formData.apiSecret) {
+      toast('API Kullanıcı ve API Şifre alanlarını doldurun', 'error');
       return;
     }
 
@@ -76,7 +77,11 @@ export default function PaymentSettingsPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          apiKey: formData.apiKey,
+          apiSecret: formData.apiSecret,
+          mode: formData.mode
+        })
       });
 
       if (response.status === 401 || response.status === 403) {
@@ -88,14 +93,11 @@ export default function PaymentSettingsPage() {
       
       if (result.success) {
         toast('Shopier ayarları başarıyla kaydedildi!', 'success');
-        // Clear form after successful save
         setFormData({
-          merchantId: '',
           apiKey: '',
           apiSecret: '',
           mode: formData.mode
         });
-        // Reload settings to show masked values
         loadSettings();
       } else {
         toast(result.error || 'Kaydetme hatası', 'error');
@@ -117,8 +119,17 @@ export default function PaymentSettingsPage() {
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
-    router.push('/admin/login');
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userData');
+    router.push('/');
   };
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast('Panoya kopyalandı!', 'success');
+  };
+
+  const callbackUrl = `${baseUrl}/api/payment/shopier/callback`;
 
   if (loading) {
     return (
@@ -179,10 +190,7 @@ export default function PaymentSettingsPage() {
                   Shopier entegrasyonu aktif
                 </p>
                 <p className="text-sm text-gray-400">
-                  Merchant ID: <span className="font-mono">{settings.merchantId}</span>
-                </p>
-                <p className="text-sm text-gray-400">
-                  API Key: <span className="font-mono">{settings.apiKey}</span>
+                  API Kullanıcı: <span className="font-mono">{settings.apiKey}</span>
                 </p>
                 <p className="text-sm text-gray-400">
                   Mod: <span className="font-mono uppercase">{settings.mode}</span>
@@ -199,6 +207,53 @@ export default function PaymentSettingsPage() {
             )}
           </div>
         )}
+
+        {/* Callback URL Info - Important for Shopier Setup */}
+        <div className="bg-orange-900/30 border border-orange-700 rounded-lg p-6 mb-6">
+          <div className="flex gap-3">
+            <svg className="w-6 h-6 text-orange-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <p className="font-semibold text-orange-200 mb-2">Önemli: Shopier Ayarları</p>
+              <p className="text-sm text-orange-200/80 mb-3">
+                Shopier panelinde aşağıdaki ayarları yapmanız gerekiyor:
+              </p>
+              
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs text-orange-300 mb-1">1. Kayıtlı Alan Adları:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-gray-900/50 px-3 py-2 rounded text-sm text-white font-mono break-all">
+                      {baseUrl}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(baseUrl)}
+                      className="px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-sm"
+                    >
+                      Kopyala
+                    </button>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-xs text-orange-300 mb-1">2. Geri Dönüş URL (Callback):</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 bg-gray-900/50 px-3 py-2 rounded text-sm text-white font-mono break-all">
+                      {callbackUrl}
+                    </code>
+                    <button
+                      onClick={() => copyToClipboard(callbackUrl)}
+                      className="px-3 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors text-sm"
+                    >
+                      Kopyala
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Settings Form */}
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
@@ -220,51 +275,39 @@ export default function PaymentSettingsPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Merchant ID */}
+            {/* API Key (API Kullanıcı) */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Shopier Merchant ID *
-              </label>
-              <input
-                type="text"
-                value={formData.merchantId}
-                onChange={(e) => setFormData({ ...formData, merchantId: e.target.value })}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors"
-                placeholder="Shopier Merchant ID'nizi girin"
-                required
-              />
-            </div>
-
-            {/* API Key */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Shopier API Key *
+                API Kullanıcı (API Key) *
               </label>
               <input
                 type="text"
                 value={formData.apiKey}
                 onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors font-mono"
-                placeholder="Shopier API Key'inizi girin"
+                placeholder="Örn: b3b942d4ab5177eadac91c92071faac1"
                 required
               />
+              <p className="text-xs text-gray-400 mt-1">
+                Shopier Ayarlar → API Erişimi → API KULLANICI
+              </p>
             </div>
 
-            {/* API Secret */}
+            {/* API Secret (API Şifre) */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Shopier API Secret *
+                API Şifre (API Secret) *
               </label>
               <input
                 type="password"
                 value={formData.apiSecret}
                 onChange={(e) => setFormData({ ...formData, apiSecret: e.target.value })}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors font-mono"
-                placeholder="Shopier API Secret'ınızı girin"
+                placeholder="Örn: 2ac4af40496f84aa543f4f31e0124a02"
                 required
               />
               <p className="text-xs text-gray-400 mt-1">
-                API Secret güvenli bir şekilde şifrelenerek saklanacaktır
+                Shopier Ayarlar → API Erişimi → API ŞİFRE
               </p>
             </div>
 
@@ -302,9 +345,11 @@ export default function PaymentSettingsPage() {
             </h3>
             <ol className="text-sm text-gray-400 space-y-1 list-decimal list-inside">
               <li>Shopier hesabınıza giriş yapın</li>
-              <li>Ayarlar → API Ayarları bölümüne gidin</li>
-              <li>Merchant ID, API Key ve API Secret bilgilerinizi kopyalayın</li>
-              <li>Bu formdaki ilgili alanlara yapıştırın</li>
+              <li><strong>Ayarlar → API Erişimi</strong> bölümüne gidin</li>
+              <li>API KULLANICI ve API ŞİFRE bilgilerinizi kopyalayın</li>
+              <li>Yukarıdaki formdaki ilgili alanlara yapıştırın</li>
+              <li><strong>Önemli:</strong> Kayıtlı Alan Adları bölümüne sitenizin URL'sini ekleyin</li>
+              <li><strong>Önemli:</strong> GERİ DÖNÜŞ URL alanına callback URL'yi ekleyin</li>
             </ol>
           </div>
         </div>
