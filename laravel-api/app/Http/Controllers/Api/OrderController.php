@@ -185,6 +185,25 @@ class OrderController extends Controller
     }
 
     /**
+     * Get user's recent orders (last 5)
+     * GET /api/account/orders/recent
+     */
+    public function recentOrders(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+
+        $orders = Order::where('user_id', $authUser['id'])
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $orders->map->toUserApiArray(),
+        ]);
+    }
+
+    /**
      * Get single order for user
      * GET /api/account/orders/{orderId}
      */
