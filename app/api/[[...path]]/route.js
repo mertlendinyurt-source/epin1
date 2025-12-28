@@ -203,7 +203,102 @@ const AUDIT_ACTIONS = {
   TICKET_CREATE: 'ticket.create',
   TICKET_REPLY: 'ticket.reply',
   TICKET_CLOSE: 'ticket.close',
+  ORDER_RISK_FLAG: 'order.risk_flag',
+  ORDER_MANUAL_APPROVE: 'order.manual_approve',
+  ORDER_MANUAL_REFUND: 'order.manual_refund',
 };
+
+// ============================================
+// RISK SCORING SYSTEM
+// ============================================
+const RISK_THRESHOLD = 40; // Orders with score >= 40 are flagged
+
+async function calculateOrderRisk(db, order, user, request) {
+  let score = 0;
+  const reasons = [];
+  const ip = getClientIP(request);
+
+  // 1. New account check (account age < 1 hour)
+  const accountAgeMs = new Date() - new Date(user.createdAt);
+  const accountAgeHours = accountAgeMs / (1000 * 60 * 60);
+  if (accountAgeHours < 1) {
+    score += 25;
+    reasons.push('Yeni hesap (1 saatten az)');
+  } else if (accountAgeHours < 24) {
+    score += 10;
+    reasons.push('Hesap 24 saatten yeni');
+  }
+
+  // 2. First order for this user
+  const previousOrders = await db.collection('orders').countDocuments({ 
+    userId: user.id, 
+    status: { $in: ['paid', 'completed'] } 
+  });
+  if (previousOrders === 0) {
+    score += 10;
+    reasons.push('İlk sipariş');
+  }
+
+  // 3. High value order (over 500 TRY)
+  if (order.amount > 500) {
+    score += 15;
+    reasons.push(`Yüksek değerli sipariş (${order.amount} TRY)`);
+  } else if (order.amount > 250) {
+    score += 5;
+    reasons.push('Orta-yüksek değerli sipariş');
+  }
+
+  // 4. Multiple orders from same IP in last hour
+  const recentOrdersFromIP = await db.collection('orders').countDocuments({
+    'meta.ip': ip,
+    createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
+  });
+  if (recentOrdersFromIP > 3) {
+    score += 20;
+    reasons.push(`Aynı IP'den ${recentOrdersFromIP} sipariş (son 1 saat)`);
+  }
+
+  // 5. Different player IDs from same user
+  const differentPlayerIds = await db.collection('orders').distinct('playerId', { userId: user.id });
+  if (differentPlayerIds.length > 3) {
+    score += 15;
+    reasons.push(`${differentPlayerIds.length} farklı oyuncu ID kullanılmış`);
+  }
+
+  // 6. Google OAuth without phone verification
+  if (user.authProvider === 'google' && !user.phoneVerified) {
+    score += 5;
+    reasons.push('Google ile giriş, telefon doğrulanmamış');
+  }
+
+  // 7. Suspicious email patterns
+  const emailDomain = user.email?.split('@')[1] || '';
+  const suspiciousProviders = ['tempmail', 'guerrilla', '10minute', 'throwaway', 'mailinator'];
+  if (suspiciousProviders.some(p => emailDomain.includes(p))) {
+    score += 30;
+    reasons.push('Geçici e-posta sağlayıcısı');
+  }
+
+  // 8. Multiple failed orders from this user
+  const failedOrders = await db.collection('orders').countDocuments({
+    userId: user.id,
+    status: 'failed',
+    createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+  });
+  if (failedOrders >= 2) {
+    score += 15;
+    reasons.push(`${failedOrders} başarısız sipariş (son 24 saat)`);
+  }
+
+  const status = score >= RISK_THRESHOLD ? 'FLAGGED' : 'CLEAR';
+
+  return {
+    score: Math.min(score, 100),
+    status,
+    reasons,
+    calculatedAt: new Date()
+  };
+}
 
 // ============================================
 // INPUT VALIDATION HELPERS
