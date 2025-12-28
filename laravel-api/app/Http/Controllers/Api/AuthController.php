@@ -507,4 +507,79 @@ class AuthController extends Controller
             'message' => 'Şifre başarıyla değiştirildi',
         ]);
     }
+
+    /**
+     * Get current user (alias for profile)
+     * GET /api/account/me
+     */
+    public function me(Request $request): JsonResponse
+    {
+        return $this->profile($request);
+    }
+
+    /**
+     * Update current user (alias for updateProfile)
+     * PUT /api/account/me
+     */
+    public function updateMe(Request $request): JsonResponse
+    {
+        return $this->updateProfile($request);
+    }
+
+    /**
+     * Delete user account
+     * DELETE /api/account/me
+     */
+    public function deleteAccount(Request $request): JsonResponse
+    {
+        $authUser = $request->attributes->get('auth_user');
+        $user = User::find($authUser['id']);
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Kullanıcı bulunamadı',
+            ], 404);
+        }
+
+        // Check for pending orders
+        $pendingOrders = DB::table('orders')
+            ->where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->count();
+
+        if ($pendingOrders > 0) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Bekleyen siparişleriniz var. Hesabı silebilmek için önce siparişlerin tamamlanmasını bekleyin.',
+            ], 400);
+        }
+
+        // Delete user
+        $user->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Hesabınız başarıyla silindi',
+        ]);
+    }
+
+    /**
+     * Get Google OAuth status
+     * GET /api/auth/google/status
+     */
+    public function googleStatus(Request $request): JsonResponse
+    {
+        $settings = DB::table('oauth_settings')
+            ->where('provider', 'google')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'enabled' => (bool) ($settings?->enabled ?? false),
+                'configured' => $settings && $settings->client_id && $settings->client_secret,
+            ],
+        ]);
+    }
 }
