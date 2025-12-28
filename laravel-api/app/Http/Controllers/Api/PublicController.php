@@ -282,6 +282,9 @@ class PublicController extends Controller
     /**
      * Get SEO settings
      * GET /api/seo/settings
+    /**
+     * Get SEO settings
+     * GET /api/seo/settings
      */
     public function seoSettings(): JsonResponse
     {
@@ -294,6 +297,20 @@ class PublicController extends Controller
             'data' => [
                 'ga4MeasurementId' => ($settings?->enable_analytics ?? false) ? $settings->ga4_measurement_id : null,
                 'gscVerificationCode' => ($settings?->enable_search_console ?? false) ? $settings->gsc_verification_code : null,
+            ],
+        ]);
+    }
+
+    /**
+     * Get base URL
+     * GET /api/site/base-url
+     */
+    public function baseUrl(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'baseUrl' => config('app.url'),
             ],
         ]);
     }
