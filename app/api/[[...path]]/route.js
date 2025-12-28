@@ -2962,111 +2962,158 @@ export async function POST(request) {
         createdAt: new Date()
       });
 
-      // 11. AUTO-ASSIGN STOCK (if PAID and not already assigned)
+      // 11. CALCULATE RISK & AUTO-ASSIGN STOCK (if PAID and not already assigned)
       if (newStatus === 'paid') {
         // Get user and product for email
         const orderUser = await db.collection('users').findOne({ id: order.userId });
         const product = await db.collection('products').findOne({ id: order.productId });
 
-        // Send payment success email
-        if (orderUser && product) {
-          sendPaymentSuccessEmail(db, order, orderUser, product).catch(err => 
-            console.error('Payment success email failed:', err)
-          );
-        }
-
-        // Check if stock already assigned (idempotency)
-        const currentOrder = await db.collection('orders').findOne({ id: order.id });
+        // Calculate risk score
+        const riskResult = await calculateOrderRisk(db, order, orderUser, request);
         
-        if (!currentOrder.delivery || !currentOrder.delivery.items || currentOrder.delivery.items.length === 0) {
-          try {
-            // Find available stock for this product (atomic operation)
-            const assignedStock = await db.collection('stock').findOneAndUpdate(
-              { 
-                productId: order.productId, 
-                status: 'available' 
-              },
-              { 
-                $set: { 
-                  status: 'assigned', 
-                  orderId: order.id,
-                  assignedAt: new Date()
-                } 
-              },
-              { 
-                returnDocument: 'after',
-                sort: { createdAt: 1 } // FIFO - First stock in, first assigned
+        // Update order with risk information
+        await db.collection('orders').updateOne(
+          { id: order.id },
+          {
+            $set: {
+              risk: riskResult,
+              'meta.ip': getClientIP(request)
+            }
+          }
+        );
+
+        // If FLAGGED - HOLD delivery, don't assign stock
+        if (riskResult.status === 'FLAGGED') {
+          await db.collection('orders').updateOne(
+            { id: order.id },
+            {
+              $set: {
+                delivery: {
+                  status: 'hold',
+                  message: 'Sipariş kontrol altında',
+                  holdReason: 'risk_flagged',
+                  items: []
+                }
               }
+            }
+          );
+          
+          // Log the risk flag
+          await logAuditAction(db, AUDIT_ACTIONS.ORDER_RISK_FLAG, 'system', 'order', order.id, request, {
+            riskScore: riskResult.score,
+            reasons: riskResult.reasons
+          });
+          
+          console.log(`Order ${order.id} FLAGGED with risk score ${riskResult.score}. Delivery on HOLD.`);
+          
+          // Send payment success email (but note delivery is pending review)
+          if (orderUser && product) {
+            sendPaymentSuccessEmail(db, order, orderUser, product).catch(err => 
+              console.error('Payment success email failed:', err)
             );
+          }
+        } else {
+          // CLEAR risk - proceed with stock assignment
+          // Send payment success email
+          if (orderUser && product) {
+            sendPaymentSuccessEmail(db, order, orderUser, product).catch(err => 
+              console.error('Payment success email failed:', err)
+            );
+          }
 
-            console.log('Stock assignment result:', JSON.stringify(assignedStock));
-
-            if (assignedStock && assignedStock.value) {
-              // assignedStock IS the document, assignedStock.value IS the stock code string
-              const stockCode = assignedStock.value;
-              
-              await db.collection('orders').updateOne(
-                { id: order.id },
-                {
-                  $set: {
-                    delivery: {
-                      status: 'delivered',
-                      items: [stockCode],
-                      stockId: assignedStock.id || assignedStock._id,
-                      assignedAt: new Date()
-                    }
-                  }
+          // Check if stock already assigned (idempotency)
+          const currentOrder = await db.collection('orders').findOne({ id: order.id });
+          
+          if (!currentOrder.delivery || !currentOrder.delivery.items || currentOrder.delivery.items.length === 0) {
+            try {
+              // Find available stock for this product (atomic operation)
+              const assignedStock = await db.collection('stock').findOneAndUpdate(
+                { 
+                  productId: order.productId, 
+                  status: 'available' 
+                },
+                { 
+                  $set: { 
+                    status: 'assigned', 
+                    orderId: order.id,
+                    assignedAt: new Date()
+                  } 
+                },
+                { 
+                  returnDocument: 'after',
+                  sort: { createdAt: 1 } // FIFO - First stock in, first assigned
                 }
               );
-              console.log(`Stock assigned: Order ${order.id} received code: ${stockCode}`);
-              
-              // Send delivered email with codes
-              if (orderUser && product) {
-                sendDeliveredEmail(db, order, orderUser, product, [stockCode]).catch(err => 
-                  console.error('Delivered email failed:', err)
+
+              console.log('Stock assignment result:', JSON.stringify(assignedStock));
+
+              if (assignedStock && assignedStock.value) {
+                // assignedStock IS the document, assignedStock.value IS the stock code string
+                const stockCode = assignedStock.value;
+                
+                await db.collection('orders').updateOne(
+                  { id: order.id },
+                  {
+                    $set: {
+                      delivery: {
+                        status: 'delivered',
+                        items: [stockCode],
+                        stockId: assignedStock.id || assignedStock._id,
+                        assignedAt: new Date()
+                      }
+                    }
+                  }
                 );
+                console.log(`Stock assigned: Order ${order.id} received code: ${stockCode}`);
+                
+                // Send delivered email with codes
+                if (orderUser && product) {
+                  sendDeliveredEmail(db, order, orderUser, product, [stockCode]).catch(err => 
+                    console.error('Delivered email failed:', err)
+                  );
+                }
+              } else {
+                // No stock available - mark as pending
+                await db.collection('orders').updateOne(
+                  { id: order.id },
+                  {
+                    $set: {
+                      delivery: {
+                        status: 'pending',
+                        message: 'Stok bekleniyor',
+                        items: []
+                      }
+                    }
+                  }
+                );
+                console.warn(`No stock available for order ${order.id} (product ${order.productId})`);
+                
+                // Send pending stock email
+                if (orderUser && product) {
+                  sendPendingStockEmail(db, order, orderUser, product, 'Stok bekleniyor').catch(err => 
+                    console.error('Pending stock email failed:', err)
+                  );
+                }
               }
-            } else {
-              // No stock available - mark as pending
+            } catch (stockError) {
+              console.error(`Stock assignment error for order ${order.id}:`, stockError);
+              // Don't fail the whole callback - mark as pending
               await db.collection('orders').updateOne(
                 { id: order.id },
                 {
                   $set: {
                     delivery: {
                       status: 'pending',
-                      message: 'Stok bekleniyor',
+                      message: 'Stok atama hatası',
                       items: []
                     }
                   }
                 }
               );
-              console.warn(`No stock available for order ${order.id} (product ${order.productId})`);
-              
-              // Send pending stock email
-              if (orderUser && product) {
-                sendPendingStockEmail(db, order, orderUser, product, 'Stok bekleniyor').catch(err => 
-                  console.error('Pending stock email failed:', err)
-                );
-              }
             }
-          } catch (stockError) {
-            console.error(`Stock assignment error for order ${order.id}:`, stockError);
-            // Don't fail the whole callback - mark as pending
-            await db.collection('orders').updateOne(
-              { id: order.id },
-              {
-                $set: {
-                  delivery: {
-                    status: 'pending',
-                    message: 'Stok atama hatası',
-                    items: []
-                  }
-                }
-              }
-            );
+          } else {
+            console.log(`Stock already assigned for order ${order.id} - skipping (idempotent)`);
           }
-        } else {
-          console.log(`Stock already assigned for order ${order.id} - skipping (idempotent)`);
         }
       }
 
