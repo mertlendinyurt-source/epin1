@@ -468,6 +468,18 @@ export default function App() {
       return
     }
 
+    // GA4 begin_checkout event
+    trackEvent('begin_checkout', {
+      currency: 'TRY',
+      value: selectedProduct.discountPrice,
+      items: [{
+        item_id: selectedProduct.id,
+        item_name: selectedProduct.title,
+        price: selectedProduct.discountPrice,
+        quantity: 1
+      }]
+    })
+
     // 3. Proceed with order
     setOrderProcessing(true)
     try {
