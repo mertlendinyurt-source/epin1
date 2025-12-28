@@ -1014,7 +1014,7 @@ export default function App() {
                   <div
                     key={product.id}
                     onClick={() => handleProductSelect(product)}
-                    className="group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl flex flex-col border border-white/10 hover:border-white/20 w-full aspect-[2/3.2] md:aspect-[2/3]"
+                    className="group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl flex flex-col border border-white/10 hover:border-white/20 w-full aspect-[2/3.5] md:aspect-[2/3]"
                     style={{ backgroundColor: '#252a34', maxWidth: '270px', margin: '0 auto' }}
                   >
                     {/* Info Icon */}
@@ -1022,8 +1022,8 @@ export default function App() {
                       <span className="text-gray-700 font-bold text-sm md:text-xs">i</span>
                     </div>
 
-                    {/* Image Section - 50% height on mobile, 55% on desktop */}
-                    <div className="relative h-[48%] md:h-[55%] bg-gradient-to-b from-[#2d3444] to-[#252a34] flex items-center justify-center p-3 md:p-4">
+                    {/* Image Section */}
+                    <div className="relative h-[45%] md:h-[55%] bg-gradient-to-b from-[#2d3444] to-[#252a34] flex items-center justify-center p-3 md:p-4">
                       <img 
                         src={product.imageUrl || "https://images.unsplash.com/photo-1645690364326-1f80098eca66?w=300&h=300&fit=crop"}
                         alt={product.title}
@@ -1035,22 +1035,22 @@ export default function App() {
                     </div>
 
                     {/* Content Section */}
-                    <div className="h-[52%] md:h-[45%] flex flex-col justify-between p-3 md:p-3.5">
+                    <div className="h-[55%] md:h-[45%] flex flex-col justify-between p-3 md:p-3.5">
                       <div>
                         <div className="text-[12px] md:text-[10px] text-white/60 font-bold uppercase">MOBİLE</div>
                         <div className="text-[17px] md:text-[13px] font-bold text-white">{product.ucAmount} UC</div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
+                        <div className="flex items-center gap-1.5 mt-1">
                           <RegionDisplay regionCode={product.regionCode || 'TR'} size="sm" showWhiteText={true} />
                         </div>
-                        <div className="text-[11px] md:text-[9px] text-emerald-400">Bölgenizde kullanılabilir</div>
+                        <div className="text-[11px] md:text-[9px] text-emerald-400 mt-0.5">Bölgenizde kullanılabilir</div>
                       </div>
-                      <div className="mt-1">
+                      <div className="mt-2">
                         {product.discountPrice < product.price && (
-                          <div className="text-[12px] md:text-[9px] text-red-500 line-through">₺{product.price.toFixed(2).replace('.', ',')}</div>
+                          <div className="text-[13px] md:text-[9px] text-red-500 line-through">₺{product.price.toFixed(2).replace('.', ',')}</div>
                         )}
-                        <div className="text-[20px] md:text-[15px] font-bold text-white">₺ {product.discountPrice.toFixed(2).replace('.', ',')}</div>
+                        <div className="text-[22px] md:text-[15px] font-bold text-white">₺ {product.discountPrice.toFixed(2).replace('.', ',')}</div>
                         {product.discountPercent > 0 && (
-                          <div className="text-[12px] md:text-[11px] text-emerald-400 font-medium">{product.discountPercent.toFixed(1).replace('.', ',')}% ▼ indirim</div>
+                          <div className="text-[13px] md:text-[11px] text-emerald-400 font-medium">{product.discountPercent.toFixed(1).replace('.', ',')}% ▼ indirim</div>
                         )}
                       </div>
                     </div>
