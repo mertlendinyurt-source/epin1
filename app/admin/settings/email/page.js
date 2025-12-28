@@ -173,7 +173,7 @@ export default function EmailSettings() {
             UC
           </div>
           <div>
-            <div className="text-white font-bold">PUBG UC</div>
+            <div className="text-white font-bold">PINLY</div>
             <div className="text-slate-400 text-xs">Admin Panel</div>
           </div>
         </div>
@@ -261,7 +261,7 @@ export default function EmailSettings() {
                 <Input
                   value={settings.fromName}
                   onChange={(e) => setSettings({ ...settings, fromName: e.target.value })}
-                  placeholder="PUBG UC Store"
+                  placeholder="PINLY Store"
                   className="bg-slate-800 border-slate-700 text-white"
                 />
               </div>

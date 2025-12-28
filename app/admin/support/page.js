@@ -110,7 +110,7 @@ export default function AdminSupport() {
             UC
           </div>
           <div>
-            <div className="text-white font-bold">PUBG UC</div>
+            <div className="text-white font-bold">PINLY</div>
             <div className="text-slate-400 text-xs">Admin Panel</div>
           </div>
         </div>
