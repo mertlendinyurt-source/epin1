@@ -3001,14 +3001,13 @@ export async function POST(request) {
         );
       }
 
-      // Encrypt sensitive data before storing
+      // Encrypt sensitive data before storing (Shopier only needs apiKey and apiSecret)
       const encryptedSettings = {
-        merchantId: encrypt(merchantId),
         apiKey: encrypt(apiKey),
         apiSecret: encrypt(apiSecret),
         mode: mode || 'production',
         isActive: true,
-        updatedBy: user.username,
+        updatedBy: user.username || user.email,
         updatedAt: new Date(),
         createdAt: new Date()
       };
