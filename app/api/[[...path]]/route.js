@@ -3071,6 +3071,50 @@ export async function POST(request) {
       });
     }
 
+    // Admin: Save SEO Settings (POST)
+    if (pathname === '/api/admin/settings/seo') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const { ga4MeasurementId, gscVerificationCode, enableAnalytics, enableSearchConsole } = body;
+
+      // Validate GA4 Measurement ID format if provided
+      if (ga4MeasurementId && !ga4MeasurementId.match(/^G-[A-Z0-9]+$/)) {
+        return NextResponse.json(
+          { success: false, error: 'Geçersiz GA4 Measurement ID formatı (G-XXXXXXXXXX)' },
+          { status: 400 }
+        );
+      }
+
+      const seoSettings = {
+        ga4MeasurementId: ga4MeasurementId?.trim() || '',
+        gscVerificationCode: gscVerificationCode?.trim() || '',
+        enableAnalytics: enableAnalytics !== false,
+        enableSearchConsole: enableSearchConsole !== false,
+        active: true,
+        updatedBy: user.username || user.email,
+        updatedAt: new Date()
+      };
+
+      // Upsert SEO settings
+      await db.collection('seo_settings').updateOne(
+        { active: true },
+        { $set: seoSettings },
+        { upsert: true }
+      );
+
+      return NextResponse.json({
+        success: true,
+        message: 'SEO ayarları başarıyla kaydedildi',
+        data: seoSettings
+      });
+    }
+
     // Admin: Add stock to product (bulk)
     if (pathname.match(/^\/api\/admin\/products\/[^\/]+\/stock$/)) {
       const user = verifyAdminToken(request);
