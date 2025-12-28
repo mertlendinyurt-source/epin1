@@ -2707,7 +2707,7 @@ export async function POST(request) {
     }
 
     // Shopier callback (Production-ready with security)
-    if (pathname === '/api/payment/shopier/callback') {
+    if (pathname === '/api/payments/shopier/callback') {
       const { orderId, status, transactionId, payment_id, random_nr, total_order_value, platform_order_id, hash } = body;
       
       // 1. Validate order exists
