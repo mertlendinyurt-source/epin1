@@ -1,0 +1,9 @@
+# Root .htaccess for cPanel
+# Bu dosya public_html ana dizinine konulacak
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # public klasorunune yonlendir
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
