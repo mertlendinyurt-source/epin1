@@ -75,12 +75,16 @@ Route::get('/site/base-url', [PublicController::class, 'baseUrl']);
 Route::middleware('auth.jwt')->group(function () {
     // Account
     Route::prefix('account')->group(function () {
+        Route::get('/me', [AuthController::class, 'me']);
         Route::get('/profile', [AuthController::class, 'profile']);
         Route::put('/profile', [AuthController::class, 'updateProfile']);
         Route::put('/password', [AuthController::class, 'changePassword']);
+        Route::put('/me', [AuthController::class, 'updateMe']);
+        Route::delete('/me', [AuthController::class, 'deleteAccount']);
         
         // Orders
         Route::get('/orders', [OrderController::class, 'userOrders']);
+        Route::get('/orders/recent', [OrderController::class, 'recentOrders']);
         Route::get('/orders/{orderId}', [OrderController::class, 'userOrderDetail']);
     });
     
