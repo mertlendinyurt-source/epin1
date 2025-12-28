@@ -116,6 +116,7 @@ export default function App() {
     fetchFooterSettings()
     handleGoogleAuthCallback() // Handle Google OAuth callback
     handleLoginRedirect() // Handle login redirect from /admin/login
+    loadSEOSettings() // Load SEO settings for GA4 and GSC
     
     // Set today's date only on client-side to avoid hydration mismatch
     setTodayDate(new Date().toLocaleDateString('tr-TR', { 
