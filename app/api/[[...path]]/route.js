@@ -2652,7 +2652,7 @@ export async function POST(request) {
       const shopierPayload = {
         random_nr: randomNr,
         platform_order_id: order.id,
-        product_name: `${product.title} - PUBG Mobile UC`,
+        product_name: `PINLY - Dijital Kod Teslimatı (${product.title})`,
         product_type: '1', // Digital product
         buyer_name: customerSnapshot.firstName,
         buyer_surname: customerSnapshot.lastName,
