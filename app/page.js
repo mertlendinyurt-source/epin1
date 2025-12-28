@@ -1513,7 +1513,7 @@ export default function App() {
                   </div>
                 )}
                 {!siteSettings?.logo && (
-                  <span className="text-xl font-bold text-white">{siteSettings?.siteName || 'PUBG UC Store'}</span>
+                  <span className="text-xl font-bold text-white">{siteSettings?.siteName || 'PINLY'}</span>
                 )}
               </div>
               
