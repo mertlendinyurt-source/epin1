@@ -1648,7 +1648,7 @@ export default function App() {
                 © 2025 {siteSettings?.siteName || 'PINLY'}. Tüm hakları saklıdır.
               </p>
               <p className="text-white/20 text-xs text-center md:text-right">
-                Bu site PUBG Mobile veya Tencent Games ile resmi bir bağlantısı yoktur.
+                PINLY üzerinden oyun içi kodlar ve dijital pinler anında teslim edilir.
               </p>
             </div>
           </div>
