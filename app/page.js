@@ -1013,7 +1013,7 @@ export default function App() {
                   <div
                     key={product.id}
                     onClick={() => handleProductSelect(product)}
-                    className="group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-black/40 aspect-[3/4.5] md:aspect-[4/5]"
+                    className="group relative rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-black/40 flex flex-col"
                     style={{ backgroundColor: '#1a1d24' }}
                   >
                     {/* Premium Badge */}
@@ -1028,8 +1028,8 @@ export default function App() {
                       <Info className="w-3.5 h-3.5 text-white" />
                     </div>
 
-                    {/* Image Section - 65-70% of card height */}
-                    <div className="relative h-[65%] overflow-hidden">
+                    {/* Image Section - Fixed aspect ratio for image area */}
+                    <div className="relative aspect-[4/3] overflow-hidden">
                       <img 
                         src={product.imageUrl || "https://images.unsplash.com/photo-1645690364326-1f80098eca66?w=400&h=500&fit=crop"}
                         alt={product.title}
@@ -1038,21 +1038,21 @@ export default function App() {
                           e.target.src = "https://images.unsplash.com/photo-1645690364326-1f80098eca66?w=400&h=500&fit=crop";
                         }}
                       />
-                      {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#1a1d24] via-transparent to-transparent opacity-60" />
+                      {/* Subtle Gradient Overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#1a1d24]/80 via-transparent to-transparent" />
                     </div>
 
-                    {/* Content Section - 30-35% of card height */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[35%] p-3 md:p-4 flex flex-col justify-between bg-gradient-to-t from-[#1a1d24] to-[#1a1d24]/95">
+                    {/* Content Section - Separate from image */}
+                    <div className="p-3 md:p-4 flex flex-col flex-1 justify-between bg-[#1a1d24]">
                       {/* Product Info */}
-                      <div>
+                      <div className="mb-2">
                         <div className="text-[10px] md:text-[11px] text-blue-400 font-semibold uppercase tracking-wider mb-0.5">
                           MOBILE
                         </div>
-                        <div className="text-sm md:text-lg font-bold text-white leading-tight mb-1.5">
+                        <div className="text-sm md:text-lg font-bold text-white leading-tight mb-1">
                           {product.ucAmount} UC
                         </div>
-                        <div className="flex items-center gap-1.5 mb-1">
+                        <div className="flex items-center gap-1.5">
                           <RegionDisplay regionCode={product.regionCode || 'TR'} size="sm" />
                           <span className="text-[9px] md:text-[10px] text-emerald-400 font-medium">
                             Bölgenizde kullanılabilir
@@ -1061,7 +1061,7 @@ export default function App() {
                       </div>
 
                       {/* Price Section */}
-                      <div className="flex items-end justify-between">
+                      <div className="flex items-end justify-between pt-2 border-t border-white/5">
                         <div>
                           {product.discountPrice < product.price && (
                             <div className="text-[11px] md:text-xs text-white/40 line-through">
