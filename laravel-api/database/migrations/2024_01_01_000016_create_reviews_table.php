@@ -1,0 +1,28 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('reviews', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->string('game')->default('pubg');
+            $table->string('user_name');
+            $table->tinyInteger('rating')->default(5);
+            $table->text('comment')->nullable();
+            $table->boolean('approved')->default(false);
+            $table->timestamps();
+            
+            $table->index(['game', 'approved']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('reviews');
+    }
+};
