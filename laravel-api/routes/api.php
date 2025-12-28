@@ -62,7 +62,11 @@ Route::prefix('auth')->group(function () {
     // Google OAuth
     Route::get('/google', [AuthController::class, 'googleAuth']);
     Route::get('/google/callback', [AuthController::class, 'googleCallback']);
+    Route::get('/google/status', [AuthController::class, 'googleStatus']);
 });
+
+// Site Base URL
+Route::get('/site/base-url', [PublicController::class, 'baseUrl']);
 
 // ==========================================
 // USER ROUTES (Auth Required)
