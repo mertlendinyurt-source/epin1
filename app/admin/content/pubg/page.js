@@ -14,7 +14,7 @@ export default function PubgContentPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [content, setContent] = useState({
-    title: 'PUBG Mobile',
+    title: 'Dijital Ürün',
     description: '',
     defaultRating: 5.0,
     defaultReviewCount: 2008
@@ -104,7 +104,7 @@ export default function PubgContentPage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Panel
             </Button>
-            <h1 className="text-2xl font-bold text-white">PUBG Mobile İçerik Yönetimi</h1>
+            <h1 className="text-2xl font-bold text-white">Dijital Ürün İçerik Yönetimi</h1>
           </div>
           <Button 
             onClick={handleSave} 

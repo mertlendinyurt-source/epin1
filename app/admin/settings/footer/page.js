@@ -20,7 +20,7 @@ export default function FooterSettingsPage() {
       { label: 'Kayıt Ol', action: 'register' }
     ],
     categories: [
-      { label: 'PUBG Mobile', url: '/' }
+      { label: 'Dijital Ürün', url: '/' }
     ],
     corporateLinks: []
   });
@@ -171,7 +171,7 @@ export default function FooterSettingsPage() {
         {/* Popüler Kategoriler */}
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-6">
           <h2 className="text-lg font-semibold text-white mb-4">Popüler Kategoriler</h2>
-          <p className="text-sm text-slate-500 mb-4">Bu bölüm sabit olarak PUBG Mobile linkini gösterir.</p>
+          <p className="text-sm text-slate-500 mb-4">Bu bölüm sabit olarak Dijital Ürün linkini gösterir.</p>
           <div className="bg-slate-800/50 rounded-lg p-4">
             <div className="space-y-2">
               {settings.categories.map((cat, index) => (
