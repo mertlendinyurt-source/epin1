@@ -2979,12 +2979,12 @@ export async function POST(request) {
         );
       }
 
-      const { merchantId, apiKey, apiSecret, mode } = body;
+      const { apiKey, apiSecret, mode } = body;
 
-      // Validate required fields
-      if (!merchantId || !apiKey || !apiSecret) {
+      // Validate required fields (Shopier only needs apiKey and apiSecret)
+      if (!apiKey || !apiSecret) {
         return NextResponse.json(
-          { success: false, error: 'Tüm alanlar gereklidir' },
+          { success: false, error: 'API Kullanıcı ve API Şifre gereklidir' },
           { status: 400 }
         );
       }
