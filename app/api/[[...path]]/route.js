@@ -1215,6 +1215,44 @@ export async function GET(request) {
       });
     }
 
+    // Admin: Get SEO Settings (GET)
+    if (pathname === '/api/admin/settings/seo') {
+      const user = verifyAdminToken(request);
+      if (!user) {
+        return NextResponse.json(
+          { success: false, error: 'Yetkisiz erişim' },
+          { status: 401 }
+        );
+      }
+
+      const seoSettings = await db.collection('seo_settings').findOne({ active: true });
+
+      return NextResponse.json({
+        success: true,
+        data: seoSettings ? {
+          ga4MeasurementId: seoSettings.ga4MeasurementId || '',
+          gscVerificationCode: seoSettings.gscVerificationCode || '',
+          enableAnalytics: seoSettings.enableAnalytics !== false,
+          enableSearchConsole: seoSettings.enableSearchConsole !== false,
+          updatedBy: seoSettings.updatedBy,
+          updatedAt: seoSettings.updatedAt
+        } : null
+      });
+    }
+
+    // Public: Get SEO Settings for frontend (limited data)
+    if (pathname === '/api/seo/settings') {
+      const seoSettings = await db.collection('seo_settings').findOne({ active: true });
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          ga4MeasurementId: seoSettings?.enableAnalytics ? seoSettings.ga4MeasurementId : null,
+          gscVerificationCode: seoSettings?.enableSearchConsole ? seoSettings.gscVerificationCode : null
+        }
+      });
+    }
+
     // User: Get my orders
     if (pathname === '/api/account/orders') {
       const authUser = verifyToken(request);
