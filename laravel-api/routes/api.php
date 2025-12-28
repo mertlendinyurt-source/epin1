@@ -118,6 +118,10 @@ Route::post('/admin/login', [AuthController::class, 'adminLogin'])->middleware('
 
 // Admin Protected Routes
 Route::prefix('admin')->middleware('auth.admin')->group(function () {
+    // Upload
+    Route::post('/upload', [UploadController::class, 'upload']);
+    Route::delete('/upload', [UploadController::class, 'delete']);
+    
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/system-status', [DashboardController::class, 'systemStatus']);
