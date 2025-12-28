@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle, Package, ArrowRight, Home } from 'lucide-react'
 
@@ -10,9 +10,11 @@ export default function OrderSuccessPage() {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [siteSettings, setSiteSettings] = useState(null)
+  const purchaseTracked = useRef(false) // Prevent duplicate purchase events
 
   useEffect(() => {
     loadSiteSettings()
+    loadSEOAndTrack()
     if (orderId) {
       loadOrder(orderId)
     } else {
@@ -32,6 +34,35 @@ export default function OrderSuccessPage() {
     }
   }
 
+  // Load SEO settings and track purchase event
+  const loadSEOAndTrack = async () => {
+    try {
+      const res = await fetch('/api/seo/settings')
+      const data = await res.json()
+      
+      if (data.success && data.data?.ga4MeasurementId) {
+        // Inject GA4 if not already loaded
+        if (!document.querySelector(`script[src*="${data.data.ga4MeasurementId}"]`)) {
+          const script = document.createElement('script')
+          script.async = true
+          script.src = `https://www.googletagmanager.com/gtag/js?id=${data.data.ga4MeasurementId}`
+          document.head.appendChild(script)
+          
+          const initScript = document.createElement('script')
+          initScript.innerHTML = `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${data.data.ga4MeasurementId}');
+          `
+          document.head.appendChild(initScript)
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load SEO settings:', err)
+    }
+  }
+
   const loadOrder = async (id) => {
     try {
       const token = localStorage.getItem('userToken')
@@ -41,6 +72,22 @@ export default function OrderSuccessPage() {
       const data = await res.json()
       if (data.success) {
         setOrder(data.data)
+        
+        // Track purchase event only once
+        if (!purchaseTracked.current && typeof window !== 'undefined' && window.gtag) {
+          purchaseTracked.current = true
+          window.gtag('event', 'purchase', {
+            transaction_id: data.data.id,
+            value: data.data.amount,
+            currency: 'TRY',
+            items: [{
+              item_id: data.data.productId,
+              item_name: data.data.productTitle,
+              price: data.data.amount,
+              quantity: 1
+            }]
+          })
+        }
       }
     } catch (err) {
       console.error('Failed to load order:', err)
