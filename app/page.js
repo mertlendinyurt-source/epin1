@@ -436,6 +436,18 @@ export default function App() {
     setPlayerId('')
     setPlayerName('')
     setPlayerValid(null)
+    
+    // GA4 view_item event
+    trackEvent('view_item', {
+      currency: 'TRY',
+      value: product.discountPrice,
+      items: [{
+        item_id: product.id,
+        item_name: product.title,
+        price: product.discountPrice,
+        quantity: 1
+      }]
+    })
   }
 
   const handleCheckout = async () => {
